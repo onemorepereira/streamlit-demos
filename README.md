@@ -1,6 +1,7 @@
 # Streamlit Demos
 
 - [Geo IP / FQDN Lookup](./iplookup)
+- [Bicycle Gearing / Speed Calculator](./cycling-gearing-calculator)
 
 ## Getting Started
 
