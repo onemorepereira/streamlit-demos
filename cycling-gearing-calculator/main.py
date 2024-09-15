@@ -8,6 +8,11 @@ def speed(gr: float, rpm: int = 100, dia: int = 29) -> float:
     return round((rpm * gr * (dia+1) * math.pi) / 60 / 19.55, 1)
 
 
+st.set_page_config(
+    page_title="Cycling Gear Calculator",
+    layout="wide",
+)
+
 st.title('Cycling Gear Calculator')
 
 CHAINRINGS = data.CHAINRINGS
