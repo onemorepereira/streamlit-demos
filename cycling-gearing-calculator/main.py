@@ -20,10 +20,10 @@ CASSETTES  = data.CASSETTES
 CRANKARMS  = data.CRANKARMS
 WHEELS     = data.WHEELS
 
-cassette  = st.selectbox("Select your cassette", CASSETTES)
-chainring = st.selectbox("Select your chainring", CHAINRINGS)
-crankarms = st.selectbox("Select your crank length", CRANKARMS)
-wheels    = st.selectbox("Select your wheel diameter", WHEELS)
+cassette  = st.selectbox("Select your cassette",       CASSETTES)
+chainring = st.selectbox("Select your chainring",      CHAINRINGS)
+crankarms = st.selectbox("Select your crank length",   CRANKARMS, index=3)
+wheels    = st.selectbox("Select your wheel diameter", WHEELS,  index=3)
 
 cas_details = CASSETTES[cassette]
 cha_details = CHAINRINGS[chainring]
