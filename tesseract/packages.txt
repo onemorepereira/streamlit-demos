@@ -1,2 +1,3 @@
-tesseract
-tesseract-langpack-eng
+poppler-utils
+tesseract-ocr
+tesseract-ocr-eng
