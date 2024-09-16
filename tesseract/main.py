@@ -194,10 +194,10 @@ if file:
             with st.spinner("Summarizing content"):
                 summarization  = summarize_content(session=session, input=text, classification=classification)
             st.success(summarization)
-            question = st.text_input("Ask a question about the document")
-            if question:
-                response = prompt(session=session, input=summarization, prompt=question)
-                st.info(response)
+        question = st.text_input("Ask a question about the document")
+        if question:
+            response = prompt(session=session, input=summarization, prompt=question)
+            st.info(response)
             
         else:
             st.warning("Poor document OCR")
