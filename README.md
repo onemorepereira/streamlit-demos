@@ -1,7 +1,11 @@
 # Streamlit Demos
 
 - [Geo IP / FQDN Lookup](./iplookup)
+  - This is a simple example to lookup geo-coordinates to overlay on a map.
 - [Bicycle Gearing / Speed Calculator](./cycling-gearing-calculator)
+  - I am cyclist...what did you expect?
+- [Tesseract + Bedrock (AI)](./tesseract)
+  - Using Tesseract and Amazon Bedrock to help in OCR, classification, and summarization of text from images.
 
 ## Getting Started
 
