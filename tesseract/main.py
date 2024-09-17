@@ -151,7 +151,7 @@ def prompt(session, input: str, prompt: str):
     logging.info(response_data['content'][0]['text'])
     output_text = response_data['content'][0]['text']
     return output_text
-    
+
 if AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY and AWS_SESSION_TOKEN and AWS_DEFAULT_REGION:
     pass
     
@@ -167,8 +167,7 @@ else:
         aws_session_token     = AWS_SESSION_TOKEN,
         region_name           = AWS_DEFAULT_REGION
         )
-
-
+     
 file = st.file_uploader("Choose an image to upload", accept_multiple_files=False, type=['png', 'gif', 'jpg', 'tiff', 'jpeg'])
 if file:
     logging.info(file)
@@ -178,30 +177,41 @@ if file:
             text = extract_text_from_image(bytes_data)
         
         st.image(bytes_data)
-        st.write("Content Extracted")
+        st.write("#### Content Extracted via Tesseract")
         st.info(text)
-        
-        st.write("OCR Quality Gate")
+
+        st.write("#### OCR Quality Gate")
         with st.spinner("Determining document legibility"):
             legibility = legibility_gate(session=session, input=text)
         st.success(legibility)
 
-        st.write("Document Classification")
+        
         if legibility == 'YES':
+            st.write("#### Document Classification")
             with st.spinner("Classifying the document"):
                 classification = document_classifier(session=session, input=text)
             st.success(classification)
-            with st.spinner("Summarizing content"):
+
+            with st.spinner("#### Summarizing content"):
                 summarization  = summarize_content(session=session, input=text, classification=classification)
             st.success(summarization)
-        question = st.text_input("Ask a question about the document")
-        if question:
-            response = prompt(session=session, input=summarization, prompt=question)
-            st.info(response)
-            
+
+            with st.form("query"):
+                question = st.text_input("Ask a question about the document")
+                if question and summarization:
+                    response = prompt(session=session, input=summarization, prompt=question)
+                    st.info(response)
+                st.form_submit_button('Ask a question')
+
+        elif legibility != "YES":
+            st.error("Poor document OCR")
+
+        elif text is None:
+            st.error("No image provided")
+
         else:
-            st.warning("Poor document OCR")
-        
+            st.error('Something went wrong')
+            
     except Exception as e:
         logging.error(e)
         st.error(e)
