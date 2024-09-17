@@ -1,12 +1,14 @@
 from PIL import Image
 import boto3
 import io
+from io import StringIO
+import csv
 import json
 import logging
 import os
 import pytesseract
 import streamlit as st
-
+import pandas as pd
 
 logging.basicConfig(format='%(asctime)s [%(levelname)s] - %(message)s', level=logging.INFO)
 
@@ -15,13 +17,45 @@ AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 AWS_SESSION_TOKEN     = os.getenv('AWS_SESSION_TOKEN')
 AWS_DEFAULT_REGION    = os.getenv('AWS_DEFAULT_REGION')
 
-def extract_text_from_image(image_bytes):
+
+def tsv_to_json(tsv_string):
+    tsv_file = StringIO(tsv_string)
+
+    data = []
+    tsv_reader = csv.DictReader(tsv_file, delimiter='\t')
+    for row in tsv_reader:
+        data.append(row)
+
+    json_string = json.dumps(data, indent=4)
+    return json_string
+
+def extract_text(image_bytes):
     image_stream = io.BytesIO(image_bytes)
     image        = Image.open(image_stream)
     text         = pytesseract.image_to_string(image, lang='eng', config='--oem 1')
-    
+
     return text
 
+def extract_data(image_bytes):
+    image_stream = io.BytesIO(image_bytes)
+    image        = Image.open(image_stream)
+    data         = pytesseract.image_to_data(image, lang='eng', config='--oem 1')
+    json_data    = tsv_to_json(data)
+    object       = json.loads(json_data)
+    
+    return object
+
+
+def average_confidence(data):
+    conf_values = [float(item['conf']) for item in data if float(item['conf']) != -1]
+    
+    if conf_values:
+        avg_conf = sum(conf_values) / len(conf_values)
+    else:
+        avg_conf = None
+    
+    return round(avg_conf, 2)
+    
 def summarize_content(session, input: str, classification: str):
     bedrock  = session.client('bedrock-runtime')
     model_id = 'anthropic.claude-3-sonnet-20240229-v1:0'  # Replace with the correct model ID for Claude Sonnet
@@ -85,7 +119,7 @@ def document_classifier(session, input: str):
     response_body = response['body']
     response_data = json.loads(response_body.read().decode('utf-8'))
 
-    logging.info(response_data['content'][0]['text'])
+    logging.debug(response_data['content'][0]['text'])
     output_text = response_data['content'][0]['text']
     return output_text
 
@@ -116,7 +150,7 @@ def legibility_gate(session, input: str):
     response_body = response['body']
     response_data = json.loads(response_body.read().decode('utf-8'))
 
-    logging.info(response_data['content'][0]['text'])
+    logging.debug(response_data['content'][0]['text'])
     output_text = response_data['content'][0]['text']
     return output_text
 
@@ -148,7 +182,7 @@ def prompt(session, input: str, prompt: str):
     response_body = response['body']
     response_data = json.loads(response_body.read().decode('utf-8'))
 
-    logging.info(response_data['content'][0]['text'])
+    logging.debug(response_data['content'][0]['text'])
     output_text = response_data['content'][0]['text']
     return output_text
 
@@ -174,10 +208,13 @@ if file:
     try:
         bytes_data = file.getvalue()
         with st.spinner("Applying OCR to the document"):
-            text = extract_text_from_image(bytes_data)
+            text = extract_text(bytes_data)
+            data = extract_data(bytes_data)
+            conf = average_confidence(data)
         
         st.image(bytes_data)
         st.write("#### Content Extracted via Tesseract")
+        st.write("Average confidence: ", conf)
         st.info(text)
 
         st.write("#### OCR Quality Gate")
