@@ -55,7 +55,44 @@ def average_confidence(data):
         avg_conf = None
     
     return round(avg_conf, 2)
+
+def reconstruct_content(session, input: str, classification: str, ocr_confidence: float):
+    bedrock  = session.client('bedrock-runtime')
+    model_id = 'anthropic.claude-3-sonnet-20240229-v1:0'  # Replace with the correct model ID for Claude Sonnet
     
+    payload =  {
+                "anthropic_version": "bedrock-2023-05-31",
+                "max_tokens": 5000,
+                "temperature": 0.5,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": input},
+                            {"type": "text", "text": "The above text was captured via OCR from an original document."},
+                            {"type": "text", "text": "On a scale of 0 to 100, the OCR software is {} confident in its performance.".format(ocr_confidence)},
+                            {"type": "text", "text": "The content has been classified --> {}".format(classification)},
+                            {"type": "text", "text": "Based on the content classification, reconstruct the content in such a way that its easy to understand by a person. Use markdown for readability."},
+                            {"type": "text", "text": "If necessary to display data, you can use markdown tables."},
+                            {"type": "text", "text": "You can correct clearly misspelled or incorrectly OCR'd words and proper names."},
+                            {"type": "text", "text": "Do not summarize, condense, or otherwise add any commentary outside of the provided input."},
+                            ]
+                        }
+                    ]
+                }
+    response = bedrock.invoke_model(
+        modelId=model_id,
+        contentType='application/json',
+        body=json.dumps(payload)
+    )
+
+    response_body = response['body']
+    response_data = json.loads(response_body.read().decode('utf-8'))
+
+    logging.info(response_data['content'][0]['text'])
+    output_text = response_data['content'][0]['text']
+    return output_text
+
 def summarize_content(session, input: str, classification: str):
     bedrock  = session.client('bedrock-runtime')
     model_id = 'anthropic.claude-3-sonnet-20240229-v1:0'  # Replace with the correct model ID for Claude Sonnet
@@ -204,7 +241,7 @@ else:
      
 file = st.file_uploader("Choose an image to upload", accept_multiple_files=False, type=['png', 'gif', 'jpg', 'tiff', 'jpeg'])
 if file:
-    logging.info(file)
+    logging.debug(file)
     try:
         bytes_data = file.getvalue()
         with st.spinner("Applying OCR to the document"):
@@ -230,8 +267,19 @@ if file:
             st.success(classification)
 
             with st.spinner("#### Summarizing content"):
-                summarization  = summarize_content(session=session, input=text, classification=classification)
+                st.write("#### Document Summary")
+                summarization  = summarize_content(session=session, 
+                                                   input=text,
+                                                   classification=classification)
             st.success(summarization)
+            
+            with st.spinner("#### Reconstructing content"):
+                st.write("#### Document Reconstruction")
+                reconstruct  = reconstruct_content(session=session,
+                                                   input=text,
+                                                   classification=classification,
+                                                   ocr_confidence=conf)
+            st.success(reconstruct)
 
             with st.form("query"):
                 question = st.text_input("Ask a question about the document")
