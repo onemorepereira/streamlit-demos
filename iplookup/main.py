@@ -17,6 +17,7 @@ states = alt.topo_feature(data.world_110m.url, feature='countries')
 st.set_page_config(
     page_title="IP Address Details",
     layout="wide",
+    page_icon="🗺️"
 )
 
 @st.cache_data
