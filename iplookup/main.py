@@ -8,7 +8,7 @@ import re
 import requests
 import socket
 import streamlit as st
-
+from urllib.parse import urlparse
 
 logging.basicConfig(format='%(asctime)s [%(levelname)s] - %(message)s', level=logging.INFO)
 
@@ -27,8 +27,8 @@ def get_ip_details(ip: str):
     logging.info(content)
 
     if response.status_code == 200 and content['status'] == 'success':
-        data     = response.json()
-        df       = pd.DataFrame([data])
+        data = response.json()
+        df = pd.DataFrame([data])
         return df
     else:
         return None
@@ -59,28 +59,58 @@ def is_fqdn(input_str):
     )
     return bool(fqdn_regex.match(input_str))
 
+def extract_domain_from_url(url):
+    try:
+        parsed_url = urlparse(url)
+        domain = parsed_url.hostname
+        logging.info(f"Extracted domain: {domain}")
+        return domain
+    except Exception as e:
+        logging.error(f"Error extracting domain: {e}")
+        return None
 
-st.title('IP Address Lookup')
+def extract_domain_from_email(email):
+    try:
+        domain = email.split('@')[1]
+        logging.info(f"Extracted domain from email: {domain}")
+        return domain
+    except IndexError as e:
+        logging.error(f"Invalid email format: {e}")
+        return None
 
-ip_address = st.text_input("Enter an IP or hostname",
-                           value     = None,
+st.title('IP/Domain/Email Lookup')
+
+input_str = st.text_input("Enter an IP, URL, URI, or email",
+                          value=None,
                          )
-
-if not ip_address:
-    st.error("Please enter a valid IPv4 address or FQDN")
+domain     = None
+ip_address = None
+if not input_str:
+    st.error("Please enter a valid IP, URL, URI, or email.")
     exit()
-    
-if is_fqdn(input_str=ip_address):
-    ip_address = get_ip_address(host = ip_address)
-    
+
+# Determine if it's an IP address, domain, or email
+if is_ip_address(input_str):
+    ip_address = input_str
+elif is_fqdn(input_str):
+    ip_address = get_ip_address(input_str)
+elif '@' in input_str:
+    domain = extract_domain_from_email(input_str)
+    ip_address = get_ip_address(domain)
+else:
+    domain = extract_domain_from_url(input_str)
+    if domain:
+        ip_address = get_ip_address(domain)
+
+# Lookup IP details if a valid IP was extracted
 if ip_address:
     data = get_ip_details(ip_address)
-    st.write("Details", data)
-        
+    st.write("Details for ", domain if domain else ip_address, data)
+    
     try:
         background = alt.Chart(states).mark_geoshape(
-        fill="lightgray",
-        stroke="white"
+            fill="lightgray",
+            stroke="white"
         ).properties(
             width=1200,
             height=600,
@@ -99,3 +129,5 @@ if ip_address:
         background + points
     except Exception as e:
         st.error("Please enter a valid IPv4 address or FQDN")
+else:
+    st.error("Could not extract or resolve a valid IP address from the input.")
