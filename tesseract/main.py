@@ -223,21 +223,21 @@ def prompt(session, input: str, prompt: str):
     output_text = response_data['content'][0]['text']
     return output_text
 
-if AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY and AWS_SESSION_TOKEN and AWS_DEFAULT_REGION:
+if AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY and AWS_SESSION_TOKEN:
     pass
     
 else:
     AWS_ACCESS_KEY_ID       = st.text_input('AWS_ACCESS_KEY_ID', type='password')
     AWS_SECRET_ACCESS_KEY   = st.text_input('AWS_SECRET_ACCESS_KEY', type='password')
     AWS_SESSION_TOKEN       = st.text_input('AWS_SESSION_TOKEN', type='password')
-    AWS_DEFAULT_REGION      = st.selectbox("REGION", options=["us-east-1", "us-west-2"], index=0)
-    
-    session = boto3.Session(
-        aws_access_key_id     = AWS_ACCESS_KEY_ID,
-        aws_secret_access_key = AWS_SECRET_ACCESS_KEY,
-        aws_session_token     = AWS_SESSION_TOKEN,
-        region_name           = AWS_DEFAULT_REGION
-        )
+
+AWS_DEFAULT_REGION      = st.selectbox("REGION", options=["us-east-1", "us-west-2"], index=0)
+session = boto3.Session(
+    aws_access_key_id     = AWS_ACCESS_KEY_ID,
+    aws_secret_access_key = AWS_SECRET_ACCESS_KEY,
+    aws_session_token     = AWS_SESSION_TOKEN,
+    region_name           = AWS_DEFAULT_REGION
+    )
      
 file = st.file_uploader("Choose an image to upload", accept_multiple_files=False, type=['png', 'gif', 'jpg', 'tiff', 'jpeg'])
 if file:
