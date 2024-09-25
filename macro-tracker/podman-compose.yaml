@@ -1,0 +1,12 @@
+version: "3.9"
+
+services:
+  macros:
+    image: localhost/macros:latest
+    container_name: macros
+    volumes:
+      - ./journal.json:/app/journal.json:Z
+      - ./nutrition.json:/app/nutrition.json:Z
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "8504:8501"

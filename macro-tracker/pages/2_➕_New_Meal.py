@@ -3,33 +3,13 @@ import pandas as pd
 import os
 import logging
 from datetime import date
+import helper as h
+
 
 # Setup logging
 logging.basicConfig(format='%(asctime)s [%(levelname)s] - %(filename)s: %(funcName)s() - %(message)s', level=logging.INFO)
-
-def write_df_to_json(df: pd.DataFrame, file_path: str, orient: str = 'records', indent: int = 4, append: bool = True):
-    try:
-        if append and os.path.exists(file_path):
-            existing_df = pd.read_json(file_path, orient=orient)
-            df = pd.concat([existing_df, df], ignore_index=True)
-        
-        df.to_json(file_path, orient=orient, indent=indent)
-        logging.info("DataFrame written to {} successfully.".format(file_path))
-
-    except Exception as e:
-        logging.error("Failed to write DataFrame to JSON: {}".format(e))
-
-def load_df_from_json(file_path: str, orient: str = 'records'):
-    try:
-        df = pd.read_json(file_path, orient=orient)
-        logging.info("Data loaded from {} successfully.".format(file_path))
-        return df
-    except Exception as e:
-        logging.error("Failed to load data from JSON: {}".format(e))
-        return None
-
 st.set_page_config(
-    layout="wide",
+    layout="centered",
     page_icon="➕")
 
 st.sidebar.success("Navigation")
@@ -40,7 +20,7 @@ if "journal_items" not in st.session_state:
 JOURNAL_FILE = "journal.json"
 
 if os.path.exists(JOURNAL_FILE):
-    journal_df = load_df_from_json(JOURNAL_FILE)
+    journal_df = h.load_df_from_json(JOURNAL_FILE)
     if journal_df is not None:
         st.session_state["journal_items"] = journal_df.to_dict(orient='records')
 
@@ -50,7 +30,7 @@ if "items" not in st.session_state:
     
 NUTRITION_VALUES = "nutrition.json"
 if os.path.exists(NUTRITION_VALUES):
-    nutrition_df = load_df_from_json(NUTRITION_VALUES)
+    nutrition_df = h.load_df_from_json(NUTRITION_VALUES)
     if nutrition_df is not None:
         st.session_state["items"] = nutrition_df.to_dict(orient='records')
 
@@ -159,5 +139,5 @@ if submit_button:
         st.subheader("Calculated Results")
 
         # Save to file
-        write_df_to_json(df=results_df, file_path=JOURNAL_FILE)
+        h.write_df_to_json(df=results_df, file_path=JOURNAL_FILE)
         st.success("Journal entry saved.")

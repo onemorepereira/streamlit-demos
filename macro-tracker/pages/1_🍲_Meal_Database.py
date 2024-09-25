@@ -6,7 +6,7 @@ import helper as h
 
 logging.basicConfig(format='%(asctime)s [%(levelname)s] - %(filename)s: %(funcName)s() - %(message)s', level=logging.INFO)
 st.set_page_config(
-    layout="wide",
+    layout="centered",
     page_icon="🍲")
 
 st.sidebar.success("Navigation")

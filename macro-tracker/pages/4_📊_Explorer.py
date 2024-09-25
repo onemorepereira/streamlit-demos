@@ -8,10 +8,9 @@ import helper as h
 
 # Setup logging
 logging.basicConfig(format='%(asctime)s [%(levelname)s] - %(filename)s: %(funcName)s() - %(message)s', level=logging.INFO)
-
 st.set_page_config(
-    layout="wide",
-    page_icon="➕")
+    layout="centered",
+    page_icon="📊")
 
 st.sidebar.success("Navigation")
 
@@ -34,18 +33,37 @@ if os.path.exists(JOURNAL_FILE):
         
         melted_data.reset_index(inplace=True)
         
+        cals_data   = melted_data[melted_data['macros'] == 'Total Calories']
+        
         melted_data = melted_data[melted_data['macros'] != 'Total Calories']
         melted_data = melted_data[melted_data['macros'] != 'Total Weight (g)']
         
-        averages = alt.Chart(data=melted_data, width=1250, height=425).mark_line().encode(
-            x = 'Date:T',
+        
+        macro_avg_chart = alt.Chart(data=melted_data,
+                                    width=400,
+                                    height=425
+                                    ).mark_line().encode(
+            x = 'monthdate(Date):T',
             y = alt.Y('sum(Running Average):Q', 
-                    #   stack='center',
                       title='Grams'
-                    #   scale=alt.Scale(domain=[0, 500])
+                      ),
+            color = alt.Color('macros',
+                              scale=alt.Scale(scheme="darkred"),
+                              legend=alt.Legend(orient='top')
+                              ).title('7 Day Running Average')
+            )
+        
+        cal_avg_chart = alt.Chart(data=cals_data,
+                                width=400,
+                                  height=425
+                                  ).mark_line().encode(
+            x = 'monthdate(Date):T',
+            y = alt.Y('sum(Running Average):Q', 
+                      title='Calories'
                       ),
             color = alt.Color('macros', 
-                              legend=alt.Legend(orient='top')
+                              scale=alt.Scale(scheme="darkred"),
+                              legend=alt.Legend(orient='top'),
                               ).title('7 Day Running Average')
             )
 
@@ -54,47 +72,59 @@ if os.path.exists(JOURNAL_FILE):
         filtered_data   = filtered_data[filtered_data['macros'] != 'Total Weight (g)']
         
         # Chart Macro nutrients: proteins, fats, and carbs
-        macros = alt.Chart(data=filtered_data, width=1250, height=425).mark_bar().encode(
+        macro_chart = alt.Chart(data=filtered_data, 
+                                width=400, 
+                                height=425
+                                ).mark_bar().encode(
             x = 'monthdate(Date):T',
             y = alt.Y('sum(amount):Q', 
                       stack='normalize',
                       title='Grams'
-                    #   scale=alt.Scale(domain=[0, 500])
                       ),
-            color = alt.Color('macros', 
+            color = alt.Color('macros',
+                              scale=alt.Scale(scheme="darkred"),
                               legend=alt.Legend(orient='top')
                               ).title('Macros')
             )
 
         # Chart total food weight intake in grams
-        weight   = alt.Chart(data=aggregated, width=1250, height=425).mark_bar().encode(
+        weight_chart   = alt.Chart(data=aggregated, 
+                                width=400,
+                                   height=425
+                                   ).mark_bar().encode(
             x = 'monthdate(Date):T',
             y = alt.Y('sum(Total Weight (g)):Q', 
                       stack='zero',
                       title='Weight (g)'
                       ),
             color = alt.Color('sum(Total Weight (g))',
+                              scale=alt.Scale(scheme="darkgold"),
                               legend=alt.Legend(orient='top')
                               ).title('Weight (g)')
             )
         
         # Chart total food calories
-        calories = alt.Chart(data=aggregated, width=1250, height=425).mark_bar().encode(
+        calories_chart = alt.Chart(data=aggregated,
+                                #    width=1250,
+                                   height=425
+                                   ).mark_bar().encode(
             x = 'monthdate(Date):T',
             y = alt.Y('sum(Total Calories):Q', 
                       stack='zero',
                       title='Calories'
                       ),
             color = alt.Color('sum(Total Calories)',
+                              scale=alt.Scale(scheme="darkblue"),
                               legend=alt.Legend(orient='top')
                               ).title('Calories')
             )
         
         st.write('### Visualizations')
-        st.write(macros,
-                 weight,
-                 calories,
-                 averages)
+        st.write(macro_chart,
+                 macro_avg_chart,
+                 calories_chart + cal_avg_chart,
+                 weight_chart,
+                 )
 
 else:
     st.write("No journal file found.")
