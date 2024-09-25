@@ -20,8 +20,10 @@ if "journal_items" not in st.session_state:
 JOURNAL_FILE = "journal.json"
 
 if os.path.exists(JOURNAL_FILE):
+    logging.info("Existing journal content found")
     journal_df = h.load_df_from_json(JOURNAL_FILE)
     if journal_df is not None:
+        logging.info("Loading journal content to session")
         st.session_state["journal_items"] = journal_df.to_dict(orient='records')
 
 # Preload a food items object
@@ -30,8 +32,10 @@ if "items" not in st.session_state:
     
 NUTRITION_VALUES = "nutrition.json"
 if os.path.exists(NUTRITION_VALUES):
+    logging.info("Existing nutrition database content found")
     nutrition_df = h.load_df_from_json(NUTRITION_VALUES)
     if nutrition_df is not None:
+        logging.info("Loading nutrition database content to session")
         st.session_state["items"] = nutrition_df.to_dict(orient='records')
 
 # Streamlit App Title
@@ -139,5 +143,5 @@ if submit_button:
         st.subheader("Calculated Results")
 
         # Save to file
-        h.write_df_to_json(df=results_df, file_path=JOURNAL_FILE)
+        h.write_df_to_json(df=results_df, file_path=JOURNAL_FILE, append=True)
         st.success("Journal entry saved.")

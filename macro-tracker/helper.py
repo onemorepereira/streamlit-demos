@@ -1,15 +1,33 @@
 import logging
 import pandas as pd
+import os
+import json
 
 logging.basicConfig(format='%(asctime)s [%(levelname)s] - %(filename)s: %(funcName)s() - %(message)s', level=logging.INFO)
 
 
-def write_df_to_json(df: pd.DataFrame, file_path: str, orient: str = 'records', indent: int = 4):
+def write_df_to_json(df: pd.DataFrame, file_path: str, append: bool = False, orient: str = 'records', indent: int = 4):
     try:
-        df.to_json(file_path, orient=orient, indent=indent)
-        logging.info("DataFrame written to {} successfully.".format(file_path))
+        data_to_write = json.loads(df.to_json(orient=orient))
+        
+        # Append mode: Load existing data and combine with new data
+        if append and os.path.exists(file_path):
+            with open(file_path, 'r') as file:
+                existing_data = json.load(file)
+            if isinstance(existing_data, list):
+                data_to_write = existing_data + data_to_write
+            else:
+                logging.warning("File format not compatible with appending.")
+                return
+        
+        # Write (either new or appended) data to file
+        with open(file_path, 'w') as file:
+            json.dump(data_to_write, file, indent=indent)
+        
+        logging.info(f"DataFrame {'appended to' if append else 'written to'} {file_path} successfully.")
+    
     except Exception as e:
-        logging.info("Failed to write DataFrame to JSON: {}".format(e))
+        logging.error(f"Failed to write DataFrame to JSON: {e}")
 
 def load_df_from_json(file_path: str, orient: str = 'records'):
     try:

@@ -91,9 +91,9 @@ with st.form("nutrition-item", clear_on_submit=True):
 # Create a pandas DataFrame from the session state item list and display it
 if st.session_state["items"]:
     df = pd.DataFrame(st.session_state["items"])
-    h.write_df_to_json(df=df, file_path=NUTRITION_FILE)
+    h.write_df_to_json(df=df, file_path=NUTRITION_FILE, append=False)
     st.subheader("Saved Nutrition Items")
     table = st.data_editor(df, height=35*len(df)+38)
     
     if not table.equals(df):
-        h.write_df_to_json(df = table, file_path=NUTRITION_FILE)
+        h.write_df_to_json(df = table, file_path=NUTRITION_FILE, append=False)
