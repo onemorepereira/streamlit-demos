@@ -33,16 +33,14 @@ if os.path.exists(JOURNAL_FILE):
         
         melted_data.reset_index(inplace=True)
         
-        cals_data   = melted_data[melted_data['macros'] == 'Total Calories']
+        cals_data     = melted_data[melted_data['macros'] == 'Total Calories']
+        weight_data   = melted_data[melted_data['macros'] == 'Total Weight (g)']
         
         melted_data = melted_data[melted_data['macros'] != 'Total Calories']
         melted_data = melted_data[melted_data['macros'] != 'Total Weight (g)']
         
         
-        macro_avg_chart = alt.Chart(data=melted_data,
-                                    width=400,
-                                    height=425
-                                    ).mark_line().encode(
+        macro_avg_chart = alt.Chart(data=melted_data,).mark_line().encode(
             x = 'monthdate(Date):T',
             y = alt.Y('sum(Running Average):Q', 
                       title='Grams'
@@ -53,10 +51,7 @@ if os.path.exists(JOURNAL_FILE):
                               ).title('7 Day Running Average')
             )
         
-        cal_avg_chart = alt.Chart(data=cals_data,
-                                width=400,
-                                  height=425
-                                  ).mark_line().encode(
+        cal_avg_chart = alt.Chart(data=cals_data,).mark_line().encode(
             x = 'monthdate(Date):T',
             y = alt.Y('sum(Running Average):Q', 
                       title='Calories'
@@ -67,15 +62,23 @@ if os.path.exists(JOURNAL_FILE):
                               ).title('7 Day Running Average')
             )
 
+        weight_avg_chart = alt.Chart(data=weight_data,).mark_line().encode(
+            x = 'monthdate(Date):T',
+            y = alt.Y('sum(Running Average):Q', 
+                      title='Weight'
+                      ),
+            color = alt.Color('macros', 
+                              scale=alt.Scale(scheme="darkred"),
+                              legend=alt.Legend(orient='top'),
+                              ).title('7 Day Running Average')
+            )
+                                  
         # Leave only carbs, protein, and fat
         filtered_data   = melted_data[melted_data['macros'] != 'Total Calories']
         filtered_data   = filtered_data[filtered_data['macros'] != 'Total Weight (g)']
         
         # Chart Macro nutrients: proteins, fats, and carbs
-        macro_chart = alt.Chart(data=filtered_data, 
-                                width=400, 
-                                height=425
-                                ).mark_bar().encode(
+        macro_chart = alt.Chart(data=filtered_data,).mark_bar().encode(
             x = 'monthdate(Date):T',
             y = alt.Y('sum(amount):Q', 
                       stack='normalize',
@@ -88,10 +91,7 @@ if os.path.exists(JOURNAL_FILE):
             )
 
         # Chart total food weight intake in grams
-        weight_chart   = alt.Chart(data=aggregated, 
-                                width=400,
-                                   height=425
-                                   ).mark_bar().encode(
+        weight_chart   = alt.Chart(data=aggregated,).mark_bar().encode(
             x = 'monthdate(Date):T',
             y = alt.Y('sum(Total Weight (g)):Q', 
                       stack='zero',
@@ -104,10 +104,7 @@ if os.path.exists(JOURNAL_FILE):
             )
         
         # Chart total food calories
-        calories_chart = alt.Chart(data=aggregated,
-                                #    width=1250,
-                                   height=425
-                                   ).mark_bar().encode(
+        calories_chart = alt.Chart(data=aggregated,).mark_bar().encode(
             x = 'monthdate(Date):T',
             y = alt.Y('sum(Total Calories):Q', 
                       stack='zero',
@@ -120,11 +117,10 @@ if os.path.exists(JOURNAL_FILE):
             )
         
         st.write('### Visualizations')
-        st.write(macro_chart,
-                 macro_avg_chart,
-                 calories_chart + cal_avg_chart,
-                 weight_chart,
-                 )
+        st.altair_chart(macro_chart,                     use_container_width=True)
+        st.altair_chart(macro_avg_chart,                 use_container_width=True)
+        st.altair_chart(calories_chart + cal_avg_chart,  use_container_width=True)
+        st.altair_chart(weight_chart + weight_avg_chart, use_container_width=True)
 
 else:
     st.write("No journal file found.")
