@@ -1,9 +1,13 @@
 # Streamlit Demos
 
-- [Geo IP / FQDN Lookup](./iplookup)
-  - This is a simple example to lookup geo-coordinates to overlay on a map.
 - [Bicycle Gearing / Speed Calculator](./cycling-gearing-calculator)
   - I am cyclist...what did you expect?
+- [Geo IP / FQDN Lookup](./iplookup)
+  - This is a simple example to lookup geo-coordinates to overlay on a map.
+- [GPX Viewer](./gpx-viewer)
+  - Very simple UI to compare two GPX files distance, power, temperature, cadence, elevation, and speed track points.
+- [Macro Tracker](./macro-tracker)
+  - Simple macro nutrient and meal tracker, with fat, carb, protein, and caloric visualizations over time.
 - [Tesseract + Bedrock (AI)](./tesseract)
   - Using Tesseract and Amazon Bedrock to help in OCR, classification, and summarization of text from images.
 

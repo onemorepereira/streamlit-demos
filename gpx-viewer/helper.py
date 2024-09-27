@@ -1,10 +1,9 @@
-import streamlit as st
 import altair as alt
 import gpxpy
 import pandas as pd
 from xml.etree import ElementTree as ET
-import numpy as np
 from math import radians, sin, cos, sqrt, atan2
+
 
 # Namespace mapping
 NAMESPACES = {
@@ -35,11 +34,12 @@ def gpx_to_dataframe(gpx_file) -> pd.DataFrame:
         'longitude': [],
         'elevation': [],
         'time': [],
-        'ambient_temperature': [],
+        'temperature': [],
         'heart_rate': [],
         'cadence': [],
         'distance': [],
-        'speed': []  # meters / second
+        'speed': [],  # meters / second
+        'power': []
     }
     
     # Iterate through track points in all tracks and segments
@@ -58,26 +58,31 @@ def gpx_to_dataframe(gpx_file) -> pd.DataFrame:
                 atemp = None
                 hr    = None
                 cad   = None
+                pwr   = None
 
                 # Check for extensions and extract additional attributes if present
                 if point.extensions:
                     for ext in point.extensions:
-                        atemp_el = ext.find('ns3:atemp', NAMESPACES)
-                        if atemp_el is not None:
-                            atemp = float(atemp_el.text)
+                        if ext.tag == 'power':  # Check if the tag is exactly 'power'
+                            pwr = int(ext.text)
                         
                         hr_el = ext.find('ns3:hr', NAMESPACES)
                         if hr_el is not None:
                             hr = int(hr_el.text)
+                        else:
+                            hr = None
                         
                         cad_el = ext.find('ns3:cad', NAMESPACES)
                         if cad_el is not None:
                             cad = int(cad_el.text)
-                
+                        else:
+                            cad = None
+                        
                 # Append the extension attributes to the data lists
-                data['ambient_temperature'].append((atemp * 9/5)+32)
+                data['temperature'].append(((atemp * 9/5) + 32) if atemp is not None else 0)
                 data['heart_rate'].append(hr)
                 data['cadence'].append(cad)
+                data['power'].append(pwr)
                 
                 # Calculate the distance from the previous point
                 if previous_point is not None:
@@ -101,7 +106,6 @@ def gpx_to_dataframe(gpx_file) -> pd.DataFrame:
                 }
                 previous_time = point.time
     
-    # Convert the data into a Pandas DataFrame
     df = pd.DataFrame(data)
     return df
 
@@ -110,18 +114,19 @@ def aggregate_gpx_data(df: pd.DataFrame) -> pd.DataFrame:
     df['time'] = df['time'].dt.round('min')
     
     # Distance Traveled
-    df['cumulative_distance'] = df['distance'].cumsum()
+    df['distance'] = df['distance'].cumsum().div(1000) # in kilometers
 
     # Group by the rounded time (minute)
     grouped = df.groupby('time').agg({
-        'latitude':             'mean',  # Average latitude
-        'longitude':            'mean',  # Average longitude
-        'elevation':           ['mean', 'median'],  # Mean and median elevation
-        'ambient_temperature': ['mean', 'median'],  # Mean and median temperature
-        'heart_rate':          ['mean', 'median'],  # Mean and median heart rate
-        'speed':               ['mean', 'median'],  # Mean and median speed
-        'cadence':             ['mean', 'median'],  # Mean and median cadence
-        'cumulative_distance':  'last'  # Get last cumulative distance for each group
+        'latitude':             'median',
+        'longitude':            'median',
+        'elevation':           ['mean', 'median'],
+        'temperature':         ['mean', 'median'],
+        'heart_rate':          ['mean', 'median'],
+        'speed':               ['mean', 'median'],
+        'cadence':             ['mean', 'median'],
+        'distance':             'last',
+        'power':               ['mean', 'median'],
     })
     
     # Flatten the MultiIndex columns created by aggregation
@@ -129,19 +134,21 @@ def aggregate_gpx_data(df: pd.DataFrame) -> pd.DataFrame:
     
     # Rename columns for clarity
     grouped.rename(columns={
-        'latitude_mean':                'avg_latitude',
-        'longitude_mean':               'avg_longitude',
+        'latitude_median':              'latitude',
+        'longitude_median':             'longitude',
         'elevation_mean':               'mean_elevation',
         'elevation_median':             'median_elevation',
-        'ambient_temperature_mean':     'mean_temperature',
-        'ambient_temperature_median':   'median_temperature',
+        'temperature_mean':             'mean_temperature',
+        'temperature_median':           'median_temperature',
         'heart_rate_mean':              'mean_heart_rate',
         'heart_rate_median':            'median_heart_rate',
         'cadence_mean':                 'mean_cadence',
         'cadence_median':               'median_cadence',
         'speed_mean':                   'mean_speed',
         'speed_median':                 'median_speed',
-        'cumulative_distance_last':     'cumulative_distance'
+        'power_mean':                   'mean_power',
+        'power_median':                 'median_power',
+        'distance_last':                'distance'
     }, inplace=True)
     
     return grouped.reset_index()
@@ -164,7 +171,10 @@ def create_chart(source_df1: str, source_df2: str, agg_df1: pd.DataFrame, agg_df
     y_max = combined_df[y_column].max() * 1.1
 
     return alt.Chart(combined_df).mark_line().encode(
-        x='cumulative_distance',
+        x=alt.X(
+            'distance',
+            title='distance (km)'
+        ),
         y=alt.Y(
             y_column,
             title=y_label,
@@ -176,68 +186,4 @@ def create_chart(source_df1: str, source_df2: str, agg_df1: pd.DataFrame, agg_df
         title=title,
         width=700,
         height=400
-    )
-
-
-st.set_page_config(
-    page_title="GPX Comparison",
-    layout="wide",
-    page_icon="🗺️"
-)
-
-st.title("GPX File Comparison Tool")
-
-# Upload GPX files
-uploaded_file1 = st.file_uploader("Choose the first GPX file", type="gpx")
-uploaded_file2 = st.file_uploader("Choose the second GPX file", type="gpx")
-
-# Check if both files are uploaded
-if uploaded_file1 is not None and uploaded_file2 is not None:
-    # Convert the uploaded GPX files to DataFrames
-    gpx_df1 = gpx_to_dataframe(uploaded_file1)
-    gpx_df2 = gpx_to_dataframe(uploaded_file2)
-    
-    # Aggregate data
-    agg_df1 = aggregate_gpx_data(gpx_df1)
-    agg_df2 = aggregate_gpx_data(gpx_df2)
-
-    st.subheader("Comparison Charts")
-    # Speed Comparison
-    if not agg_df1['mean_speed'].isnull().all() and not agg_df2['mean_speed'].isnull().all():
-        combined_speed_chart = create_chart(uploaded_file1.name, uploaded_file2.name, agg_df1, agg_df2, 'mean_speed', 'Speed Comparison', 'Speed (mph)')
-        st.altair_chart(combined_speed_chart, use_container_width=True)
-    if not agg_df1['median_speed'].isnull().all() and not agg_df2['median_speed'].isnull().all():
-        combined_speed_chart = create_chart(uploaded_file1.name, uploaded_file2.name, agg_df1, agg_df2, 'median_speed', 'Speed Comparison', 'Speed (mph)')
-        st.altair_chart(combined_speed_chart, use_container_width=True)
-
-    # Heart Rate Comparison
-    if not agg_df1['mean_heart_rate'].isnull().all() and not agg_df2['mean_heart_rate'].isnull().all():
-        combined_hr_chart = create_chart(uploaded_file1.name, uploaded_file2.name, agg_df1, agg_df2, 'mean_heart_rate', 'Heart Rate Comparison', 'Heart Rate (bpm)')
-        st.altair_chart(combined_hr_chart, use_container_width=True)
-    if not agg_df1['median_heart_rate'].isnull().all() and not agg_df2['median_heart_rate'].isnull().all():
-        combined_hr_chart = create_chart(uploaded_file1.name, uploaded_file2.name, agg_df1, agg_df2, 'median_heart_rate', 'Heart Rate Comparison', 'Heart Rate (bpm)')
-        st.altair_chart(combined_hr_chart, use_container_width=True)
-        
-    # Temperature Comparison
-    if not agg_df1['mean_temperature'].isnull().all() and not agg_df2['mean_temperature'].isnull().all():
-        combined_temp_chart = create_chart(uploaded_file1.name, uploaded_file2.name, agg_df1, agg_df2, 'mean_temperature', 'Temperature Comparison', 'Temperature (℉)')
-        st.altair_chart(combined_temp_chart, use_container_width=True)
-    if not agg_df1['median_temperature'].isnull().all() and not agg_df2['median_temperature'].isnull().all():
-        combined_temp_chart = create_chart(uploaded_file1.name, uploaded_file2.name, agg_df1, agg_df2, 'median_temperature', 'Temperature Comparison', 'Temperature (℉)')
-        st.altair_chart(combined_temp_chart, use_container_width=True)
-        
-    # Elevation Comparison
-    if not agg_df1['mean_elevation'].isnull().all() and not agg_df2['mean_elevation'].isnull().all():
-        combined_elev_chart = create_chart(uploaded_file1.name, uploaded_file2.name, agg_df1, agg_df2, 'mean_elevation', 'Elevation Comparison', 'Elevation (ft)')
-        st.altair_chart(combined_elev_chart, use_container_width=True)
-    if not agg_df1['median_elevation'].isnull().all() and not agg_df2['median_elevation'].isnull().all():
-        combined_elev_chart = create_chart(uploaded_file1.name, uploaded_file2.name, agg_df1, agg_df2, 'median_elevation', 'Elevation Comparison', 'Elevation (ft)')
-        st.altair_chart(combined_elev_chart, use_container_width=True)
-        
-    # Cadence Comparison
-    if not agg_df1['mean_cadence'].isnull().all() and not agg_df2['mean_cadence'].isnull().all():
-        combined_elev_chart = create_chart(uploaded_file1.name, uploaded_file2.name, agg_df1, agg_df2, 'mean_cadence', 'Cadence Comparison', 'rpm')
-        st.altair_chart(combined_elev_chart, use_container_width=True)
-    if not agg_df1['median_cadence'].isnull().all() and not agg_df2['median_cadence'].isnull().all():
-        combined_elev_chart = create_chart(uploaded_file1.name, uploaded_file2.name, agg_df1, agg_df2, 'median_cadence', 'Cadence Comparison', 'rpm')
-        st.altair_chart(combined_elev_chart, use_container_width=True)
+    ).interactive()
