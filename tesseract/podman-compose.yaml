@@ -1,0 +1,8 @@
+version: "3.9"
+
+services:
+  tess:
+    image: localhost/tess:latest
+    container_name: tess
+    ports:
+      - "8502:8501"

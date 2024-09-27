@@ -1,4 +1,4 @@
 pub:
-	podman rm -f tess
+	podman-compose down
 	podman build -t tess:latest .
-	podman run -d -p 8502:8501 --name tess localhost/tess:latest 
+	podman-compose up -d

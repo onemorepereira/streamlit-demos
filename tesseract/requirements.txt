@@ -1,6 +1,5 @@
-boto3
-botocore
-pdf2image
-pillow
-pytesseract
-streamlit
+boto3>=1.35.28
+pandas>=2.2.3
+Pillow>=10.4.0
+pytesseract>=0.3.13
+streamlit>=1.38.0
