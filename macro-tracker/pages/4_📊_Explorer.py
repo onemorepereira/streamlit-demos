@@ -29,7 +29,7 @@ if os.path.exists(JOURNAL_FILE):
         melted_data         = melted_data.sort_values(by=['macros', 'Date'])
         
         melted_data.set_index('Date', inplace=True)
-        melted_data['Running Average'] = melted_data.groupby('macros')['amount'].rolling('7D', min_periods=1).mean().reset_index(level=0, drop=True)
+        melted_data['Running Average'] = melted_data.groupby('macros')['amount'].rolling('14D', min_periods=1).mean().reset_index(level=0, drop=True)
         
         melted_data.reset_index(inplace=True)
         
