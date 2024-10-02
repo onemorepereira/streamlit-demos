@@ -5,7 +5,7 @@ import fitparse
 import folium
 import gpxpy
 import pandas as pd
-
+from typing import Literal
 
 NAMESPACES = {
     'ns3': 'http://www.garmin.com/xmlschemas/TrackPointExtension/v1'
@@ -139,21 +139,21 @@ def aggregate_gpx_data(df: pd.DataFrame) -> pd.DataFrame:
     
     # Rename columns for clarity
     grouped.rename(columns={
-        'latitude_median':              'latitude',
-        'longitude_median':             'longitude',
-        'elevation_mean':               'mean_elevation',
-        'elevation_median':             'median_elevation',
-        'temperature_mean':             'mean_temperature',
-        'temperature_median':           'median_temperature',
-        'heart_rate_mean':              'mean_heart_rate',
-        'heart_rate_median':            'median_heart_rate',
-        'cadence_mean':                 'mean_cadence',
-        'cadence_median':               'median_cadence',
-        'speed_mean':                   'mean_speed',
-        'speed_median':                 'median_speed',
-        'power_mean':                   'mean_power',
-        'power_median':                 'median_power',
-        'distance_last':                'distance'
+        'latitude_median':      'latitude',
+        'longitude_median':     'longitude',
+        'elevation_mean':       'mean_elevation',
+        'elevation_median':     'median_elevation',
+        'temperature_mean':     'mean_temperature',
+        'temperature_median':   'median_temperature',
+        'heart_rate_mean':      'mean_heart_rate',
+        'heart_rate_median':    'median_heart_rate',
+        'cadence_mean':         'mean_cadence',
+        'cadence_median':       'median_cadence',
+        'speed_mean':           'mean_speed',
+        'speed_median':         'median_speed',
+        'power_mean':           'mean_power',
+        'power_median':         'median_power',
+        'distance_last':        'distance'
     }, inplace=True)
     
     return grouped.reset_index()
@@ -206,122 +206,151 @@ def parse_fit_file(fit_file) -> pd.DataFrame:
 def plot_map(df):
     if "position_lat" in df.columns and "position_long" in df.columns:
         # Convert semi-circles to degrees (standard for GPS lat/lon)
-        df["latitude"] = df["position_lat"] * (180 / 2**31)
-        df["longitude"] = df["position_long"] * (180 / 2**31)
+        df["latitude"]  = df["position_lat"] * (180 / 2**31)
+        df["longitude"]  = df["position_long"] * (180 / 2**31)
 
-        df = df.dropna(subset=["latitude", "longitude"])
+    df = df.dropna(subset=["latitude", "longitude"])
 
-        # Create a map centered at the mean latitude/longitude
-        center_lat = df["latitude"].mean()
-        center_lon = df["longitude"].mean()
-        m = folium.Map(location=[center_lat, center_lon], zoom_start=13)
+    # Create a map centered at the mean latitude/longitude
+    center_lat = df["latitude"].mean()
+    center_lon = df["longitude"].mean()
+    m = folium.Map(location=[center_lat, center_lon], zoom_start=13)
 
-        # Plot the route by adding a polyline to the map
-        route = list(zip(df["latitude"], df["longitude"]))
-        folium.PolyLine(route, color="blue", weight=2.5, opacity=1).add_to(m)
+    # Plot the route by adding a polyline to the map
+    route = list(zip(df["latitude"], df["longitude"]))
+    folium.PolyLine(route, color="blue", weight=2.5, opacity=1).add_to(m)
 
-        # Add markers every 10 km
-        total_distance = 0
-        previous_point = route[0]
-        cumulative_distance = 0
-        total_distance = 0
+    # Add markers every 10 km
+    total_distance = 0
+    previous_point = route[0]
+    cumulative_distance = 0
+    total_distance = 0
 
-        for i in range(1, len(route)):
-            current_point = route[i]
-            distance = geodesic(previous_point, current_point).kilometers
-            cumulative_distance += distance  # Update the cumulative distance
+    for i in range(1, len(route)):
+        current_point = route[i]
+        distance = geodesic(previous_point, current_point).kilometers
+        cumulative_distance += distance  # Update the cumulative distance
 
-            # Check if the cumulative distance exceeds the next 10 km mark
-            if cumulative_distance >= 10.0:
-                total_distance += cumulative_distance
-                folium.Marker(
-                    location=current_point,
-                    popup=f"{total_distance:.0f} km",
-                    icon=folium.Icon(color="blue", icon="info-sign"),
-                ).add_to(m)
-                # Reset cumulative distance after placing a marker
-                cumulative_distance = 0
-            previous_point = current_point
+        # Check if the cumulative distance exceeds the next 10 km mark
+        if cumulative_distance >= 10.0:
+            total_distance += cumulative_distance
+            folium.Marker(
+                location=current_point,
+                popup=f"{total_distance:.0f} km",
+                icon=folium.Icon(color="blue", icon="info-sign"),
+            ).add_to(m)
+            # Reset cumulative distance after placing a marker
+            cumulative_distance = 0
+        previous_point = current_point
 
-        # Start & End markers
-        folium.Marker(
-            location=route[0],
-            popup="Start",
-            icon=folium.Icon(color="green", icon="play"),
-        ).add_to(m)
+    # Start & End markers
+    folium.Marker(
+        location=route[0],
+        popup="Start",
+        icon=folium.Icon(color="green", icon="play"),
+    ).add_to(m)
 
-        folium.Marker(
-            location=route[-1], popup="End", icon=folium.Icon(color="red", icon="stop")
-        ).add_to(m)
+    folium.Marker(
+        location=route[-1], popup="End", icon=folium.Icon(color="red", icon="stop")
+    ).add_to(m)
 
-        m.fit_bounds(route)
+    m.fit_bounds(route)
 
-        return m
+    return m
 
-    else:
-        return None
-
-def get_fit_summary(df: pd.DataFrame, ftp: float) -> pd.DataFrame:
+def get_summary(df: pd.DataFrame, ftp: float, format: Literal["gpx", "fit"]) -> pd.DataFrame:
     if "heart_rate" in df:
         heart_rate_avg = round(df["heart_rate"].mean(skipna=True))
         heart_rate_max = round(df["heart_rate"].quantile(q=0.99, interpolation="linear"))
     else:
         heart_rate_avg = heart_rate_max = None
 
+    if "timestamp" in df:
+        ts_column = "timestamp"
+    elif "time" in df:
+        ts_column = "time"
+        
     if "power" in df:
         power_avg        = round(df["power"].mean(skipna=True))
         power_max        = round(df["power"].quantile(q=0.99, interpolation="linear"))
         power_np         = get_normalized_power(df)
         intensity_factor = get_intensity_factor(power_np, ftp)
-        tss              = get_tss(power_np, ftp, get_duration_seconds(df), intensity_factor)
-        power_5          = get_max_avg_pwr(df, 5)
-        power_10         = get_max_avg_pwr(df, 10)
-        power_20         = get_max_avg_pwr(df, 20)
-        power_60         = get_max_avg_pwr(df, 60)
-        power_30s        = get_max_avg_pwr(df, 0.5)
+        tss              = get_tss(power_np, ftp, get_duration_seconds(df, ts_column), intensity_factor)
+        power_5          = get_max_avg_pwr(df, 5, ts_column)
+        power_10         = get_max_avg_pwr(df, 10, ts_column)
+        power_20         = get_max_avg_pwr(df, 20, ts_column)
+        power_60         = get_max_avg_pwr(df, 60, ts_column)
+        power_30s        = get_max_avg_pwr(df, 0.5, ts_column)
     else:
-        power_avg = power_max = power_np = intensity_factor = power_5 = power_10 = power_20 = power_60 = power_30s = None
+        power_avg = power_max = power_np = intensity_factor = power_5 = power_10 = power_20 = power_60 = power_30s = tss = 0
 
     if "cadence" in df:
         cadence_avg = round(df["cadence"].mean(skipna=True))
         cadence_max = round(df["cadence"].quantile(q=0.99, interpolation="linear"))
     else:
-        cadence_avg = cadence_max = None
+        cadence_avg = cadence_max = 0
 
     if "enhanced_speed" in df:
         speed_avg = round(df["enhanced_speed"].mean(skipna=True) * 3.6)
         speed_max = round(df["enhanced_speed"].quantile(q=0.99, interpolation="linear") * 3.6)
+    elif "speed" in df:
+        # For now, GPX files appear to contain `speed` expressed in mph; converting it to kmh
+        speed_avg = round(df["speed"].mean(skipna=True) * 1.609)
+        speed_max = round(df["speed"].quantile(q=0.99, interpolation="linear") * 1.609)
     else:
-        speed_avg = speed_max = None
+        speed_avg = speed_max = 0
 
     if "temperature" in df:
         temperature_avg = round(df["temperature"].mean(skipna=True))
         temperature_max = round(df["temperature"].quantile(q=0.99, interpolation="linear"))
     else:
-        temperature_avg = temperature_max = None
+        temperature_avg = temperature_max = 0
 
-    distance_km = round(df["distance"].max() / 1000)
+    if format == "fit":
+        distance_km = round(df["distance"].max() / 1000)
+    else:
+        distance_km = round(df["distance"].max())
+        
+    if 'timestamp' in df:
+        coasting_time = get_coasting(df, time_column='timestamp')
+        stopped_time  = get_stopped_time(df, time_column='timestamp')
+        work_time     = get_work_time(df, time_column='timestamp')
+        total_time    = get_total_time(df, time_column='timestamp')
+    elif 'time' in df:
+        coasting_time = get_coasting(df, time_column='time')
+        stopped_time  = get_stopped_time(df, time_column='time')
+        work_time     = get_work_time(df, time_column='time')
+        total_time    = get_total_time(df, time_column='time')
+    else:
+        coasting_time = '0m'
+        stopped_time  = '0m'
+        work_time     = '0m'
+        total_time    = '0m'
     
     df0 = pd.DataFrame({
-        'Avg BPM ❤️':         [heart_rate_avg],
-        'Max BPM ❤️':         [heart_rate_max],
-        'Avg W ⚡':           [power_avg],
-        'Max W ⚡':           [power_max],
-        'Max W 30s ⚡':       [power_30s],
-        'Max W 5m ⚡':        [power_5],
-        'Max W 10m ⚡':       [power_10],
-        'Max W 20m ⚡':       [power_20],
-        'Max W 60m ⚡':       [power_60],
-        'NP® W ⚡':           [power_np],
-        "IF®":                [intensity_factor],
-        "TSS®":               [tss],
-        'Avg RPM 🌪️':         [cadence_avg],
-        'Max RPM 🌪️':         [cadence_max],
-        'Avg kmh 🚴':         [speed_avg],
-        'Max kmh 🚴':         [speed_max],
-        'Avg ℃ 🌡️':          [temperature_avg],
-        'Max ℃ 🌡️':          [temperature_max],
-        'Total km 📏':        [distance_km]
+        'Avg BPM ❤️':   [heart_rate_avg],
+        'Max BPM ❤️':   [heart_rate_max],
+        'Avg W ⚡':     [power_avg],
+        'Max W ⚡':     [power_max],
+        'Max W 30s ⚡': [power_30s],
+        'Max W 5m ⚡':  [power_5],
+        'Max W 10m ⚡': [power_10],
+        'Max W 20m ⚡': [power_20],
+        'Max W 60m ⚡': [power_60],
+        'NP® W ⚡':     [power_np],
+        "IF®":          [intensity_factor],
+        "TSS®":         [tss],
+        'Avg RPM 🌪️':   [cadence_avg],
+        'Max RPM 🌪️':   [cadence_max],
+        'Avg kmh 🚴':   [speed_avg],
+        'Max kmh 🚴':   [speed_max],
+        'Avg ℃ 🌡️':    [temperature_avg],
+        'Max ℃ 🌡️':    [temperature_max],
+        'Dist km 📏':   [distance_km],
+        'Coasting':     [coasting_time],
+        'Stopped':      [stopped_time],
+        'Working':      [work_time],
+        'Total':        [total_time],
     })
     
     return df0
@@ -330,7 +359,6 @@ def get_normalized_power(df: pd.DataFrame) -> float:
     if "power" not in df:
         raise ValueError("The DataFrame does not contain a 'power' column")
     
-    # df                  = df[df['power'] > 0]
     rolling_power       = df['power'].rolling(window=30, min_periods=1).mean()
     rolling_power_4th   = rolling_power ** 4
     avg_4th_power       = rolling_power_4th.mean()
@@ -367,22 +395,22 @@ def get_duration_seconds(df: pd.DataFrame, column: str = 'timestamp') -> float:
 
     return elapsed_seconds
 
-def get_max_avg_pwr(df: pd.DataFrame, minutes: float) -> float:
-    if 'power' not in df or 'timestamp' not in df:
-        raise ValueError("The DataFrame must contain 'power' and 'timestamp' columns")
+def get_max_avg_pwr(df: pd.DataFrame,  minutes: float, time_column: str = 'timestamp') -> float:
+    if 'power' not in df or time_column not in df:
+        raise ValueError("The DataFrame must contain 'power' and {time_column} columns")
     
-    df = df.sort_values(by='timestamp').reset_index(drop=True)
+    df = df.sort_values(by=time_column).reset_index(drop=True)
     
-    if not pd.api.types.is_datetime64_any_dtype(df['timestamp']):
-        df['timestamp'] = pd.to_datetime(df['timestamp'])
+    if not pd.api.types.is_datetime64_any_dtype(df[time_column]):
+        df[time_column] = pd.to_datetime(df[time_column])
     
     window_seconds = minutes * 60
     max_avg_power  = 0
     
     for i in range(len(df)):
-        start_time  = df.loc[i, 'timestamp']
+        start_time  = df.loc[i, time_column]
         end_time    = start_time + pd.Timedelta(seconds=window_seconds)
-        window_data = df[(df['timestamp'] >= start_time) & (df['timestamp'] <= end_time)]
+        window_data = df[(df[time_column] >= start_time) & (df[time_column] <= end_time)]
         
         if not window_data.empty:
             avg_power = window_data['power'].mean(skipna=True)
@@ -390,3 +418,122 @@ def get_max_avg_pwr(df: pd.DataFrame, minutes: float) -> float:
                 max_avg_power = avg_power
 
     return round(max_avg_power)
+
+def get_coasting(df: pd.DataFrame, time_column: str = 'timestamp') -> str:
+    # Check if required columns exist
+    if 'power' not in df or 'cadence' not in df or ('speed' not in df and 'enhanced_speed' not in df) or time_column not in df:
+        raise ValueError(f"The DataFrame must contain 'power', 'cadence', 'speed', and '{time_column}' columns")
+    
+    # Ensure the time column is in datetime format
+    if not pd.api.types.is_datetime64_any_dtype(df[time_column]):
+        df[time_column] = pd.to_datetime(df[time_column])
+    
+    # Sort the DataFrame by time and reset the index
+    df = df.sort_values(by=time_column).reset_index(drop=True)
+    
+    # Calculate the time difference between consecutive rows
+    df['time_diff'] = df[time_column].diff().dt.total_seconds().fillna(0)
+    
+    # Filter rows where either power or cadence is 0, and speed is greater than 0 (moving)
+    if 'speed' in df:
+        zero_power_or_cadence_while_moving = df[(df['speed'] > 0) & ((df['power'] == 0) | (df['cadence'] == 0))]
+    elif 'enhanced_speed' in df:
+        zero_power_or_cadence_while_moving = df[(df['enhanced_speed'] > 0) & ((df['power'] == 0) | (df['cadence'] == 0))]
+    
+    # Sum the time differences where power or cadence was zero while moving
+    total_time_seconds = zero_power_or_cadence_while_moving['time_diff'].sum()
+    
+    # Convert total seconds to hours, minutes, and seconds
+    total_seconds = int(total_time_seconds)
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+
+    # Return the formatted time as a string
+    return f"{hours}h {minutes}m {seconds}s"
+
+def get_stopped_time(df: pd.DataFrame, time_column: str = 'timestamp') -> str:
+    # Check if required columns exist
+    if ('speed' not in df and 'enhanced_speed' not in df) or time_column not in df:
+        raise ValueError(f"The DataFrame must contain 'speed' or 'enhanced_speed', and '{time_column}' columns")
+    
+    # Ensure the time column is in datetime format
+    if not pd.api.types.is_datetime64_any_dtype(df[time_column]):
+        df[time_column] = pd.to_datetime(df[time_column])
+    
+    # Sort the DataFrame by time and reset the index
+    df = df.sort_values(by=time_column).reset_index(drop=True)
+    
+    # Calculate the time difference between consecutive rows
+    df['time_diff'] = df[time_column].diff().dt.total_seconds().fillna(0)
+    
+    # Filter rows where speed or enhanced_speed is 0 (stationary time)
+    if 'speed' in df:
+        stationary_time_df = df[df['speed'] == 0]
+    elif 'enhanced_speed' in df:
+        stationary_time_df = df[df['enhanced_speed'] == 0]
+    
+    # Sum the time differences where speed was 0
+    total_stationary_seconds = stationary_time_df['time_diff'].sum()
+    
+    # Convert total seconds to hours, minutes, and seconds
+    total_seconds = int(total_stationary_seconds)
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+
+    # Return the formatted time as a string
+    return f"{hours}h {minutes}m {seconds}s"
+
+def get_work_time(df: pd.DataFrame, time_column: str = 'timestamp') -> str:
+    # Check if required columns exist
+    if 'power' not in df or 'cadence' not in df or time_column not in df:
+        raise ValueError(f"The DataFrame must contain 'power', 'cadence', and '{time_column}' columns")
+    
+    # Ensure the time column is in datetime format
+    if not pd.api.types.is_datetime64_any_dtype(df[time_column]):
+        df[time_column] = pd.to_datetime(df[time_column])
+    
+    # Sort the DataFrame by time and reset the index
+    df = df.sort_values(by=time_column).reset_index(drop=True)
+    
+    # Calculate the time difference between consecutive rows
+    df['time_diff'] = df[time_column].diff().dt.total_seconds().fillna(0)
+    
+    # Filter rows where either power or cadence is greater than 0
+    active_time_df = df[(df['power'] > 0) | (df['cadence'] > 0)]
+    
+    # Sum the time differences where power or cadence was greater than 0
+    total_active_seconds = active_time_df['time_diff'].sum()
+    
+    # Convert total seconds to hours, minutes, and seconds
+    total_seconds = int(total_active_seconds)
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+
+    # Return the formatted time as a string
+    return f"{hours}h {minutes}m {seconds}s"
+
+def get_total_time(df: pd.DataFrame, time_column: str = 'timestamp') -> str:
+    # Check if the time column exists
+    if time_column not in df:
+        raise ValueError(f"The DataFrame must contain the '{time_column}' column")
+    
+    # Ensure the time column is in datetime format
+    if not pd.api.types.is_datetime64_any_dtype(df[time_column]):
+        df[time_column] = pd.to_datetime(df[time_column])
+    
+    # Sort the DataFrame by time and reset the index
+    df = df.sort_values(by=time_column).reset_index(drop=True)
+    
+    # Calculate the time difference between consecutive rows
+    df['time_diff'] = df[time_column].diff().dt.total_seconds().fillna(0)
+    
+    # Sum the total time differences
+    total_time_seconds = df['time_diff'].sum()
+    
+    # Convert total seconds to hours, minutes, and seconds
+    total_seconds = int(total_time_seconds)
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+
+    # Return the formatted time as a string
+    return f"{hours}h {minutes}m {seconds}s"
