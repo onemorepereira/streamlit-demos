@@ -1,8 +1,0 @@
-version: "3.9"
-
-services:
-  gpxviz:
-    image: localhost/gpxviz:latest
-    container_name: gpxviz
-    ports:
-      - "8503:8501"
