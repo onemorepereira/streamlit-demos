@@ -11,7 +11,7 @@ st.set_page_config(
 )
 
 st.title("FIT File Utilities")
-ftp           = st.number_input("Intensity Factor (IF): ", 200)
+ftp           = st.number_input("Functional Threshold Power (FTP): ", 200)
 uploaded_file = st.file_uploader("Choose a FIT file", type=["fit"])
 
 if uploaded_file is not None:
