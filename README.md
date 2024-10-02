@@ -4,8 +4,8 @@
   - I am cyclist...what did you expect?
 - [Geo IP / FQDN Lookup](./iplookup)
   - This is a simple example to lookup geo-coordinates to overlay on a map.
-- [GPX Viewer](./gpx-viewer)
-  - Very simple UI to compare two GPX files distance, power, temperature, cadence, elevation, and speed track points.
+- [GPX/FIT file utilities](./activity-file-utilities)
+  - Very simple UI to parse data out of GPX and FIT files from the likes of Garmin, Strava, and others.
 - [Macro Tracker](./macro-tracker)
   - Simple macro nutrient and meal tracker, with fat, carb, protein, and caloric visualizations over time.
 - [Tesseract + Bedrock (AI)](./tesseract)
