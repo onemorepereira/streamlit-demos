@@ -280,7 +280,7 @@ def get_fit_summary(df: pd.DataFrame, ftp: float) -> pd.DataFrame:
         power_60         = get_max_avg_pwr(df, 60)
         power_30s        = get_max_avg_pwr(df, 0.5)
     else:
-        power_avg = power_max = power_np = intensity_factor = power_5 = power_10 = power_20 = power_60 = None
+        power_avg = power_max = power_np = intensity_factor = power_5 = power_10 = power_20 = power_60 = power_30s = None
 
     if "cadence" in df:
         cadence_avg = round(df["cadence"].mean(skipna=True))
