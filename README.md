@@ -35,3 +35,8 @@ pip install -r requirements.txt
 # Run the project
 streamlit run main.py
 ```
+
+I've published some of these demos on Streamlit directly:
+
+- [IP Lookup](https://iplookup.streamlit.app/)
+- [FIT & GPX File Utilities](https://fitfiles.streamlit.app/)
