@@ -5,19 +5,24 @@ import helper as h
 
 
 st.set_page_config(
-    page_title="FIT File Utilities",
+    page_title="FIT/GPX File Utilities",
     layout="wide",
     page_icon="🗺️"
 )
 
-st.title("FIT File Utilities")
+st.title("FIT/GPX File Utilities")
 ftp           = st.number_input("Functional Threshold Power (FTP): ", 200)
-uploaded_file = st.file_uploader("Choose a FIT file", type=["fit"])
+uploaded_file = st.file_uploader("Choose a FIT/GPX file", type=["fit", "gpx"])
 
 if uploaded_file is not None:
     try:
-        activity    = h.parse_fit_file(uploaded_file)
-        summary     = h.get_fit_summary(activity, ftp)
+        if uploaded_file.type == "application/fits":
+            activity = h.parse_fit_file(uploaded_file)
+            summary  = h.get_summary(activity, ftp, format="fit")
+        elif uploaded_file.type == "application/gpx+xml":
+            activity = h.gpx_to_dataframe(uploaded_file)
+            summary  = h.get_summary(activity, ftp, format="gpx")
+        
     except Exception as e:
         st.error(e)
 
@@ -34,8 +39,8 @@ if uploaded_file is not None:
         st.error(f"Error processing FIT file: {e}")
 
     try:
-        st.subheader("FIT file contents (first 10 rows)")
-        st.dataframe(activity.head(10))
+        st.subheader("File Stats")
+        st.dataframe(activity.describe())
 
         st.subheader("Summary")
         st.dataframe(summary)
@@ -44,4 +49,4 @@ if uploaded_file is not None:
         st.error(e)
 
 else:
-    st.info("Please upload a FIT file to inspect.")
+    st.info("Please upload a FIT or GPX file to inspect.")

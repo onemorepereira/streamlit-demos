@@ -5,7 +5,7 @@ import fitparse
 import folium
 import gpxpy
 import pandas as pd
-
+from typing import Literal
 
 NAMESPACES = {
     'ns3': 'http://www.garmin.com/xmlschemas/TrackPointExtension/v1'
@@ -206,81 +206,83 @@ def parse_fit_file(fit_file) -> pd.DataFrame:
 def plot_map(df):
     if "position_lat" in df.columns and "position_long" in df.columns:
         # Convert semi-circles to degrees (standard for GPS lat/lon)
-        df["latitude"] = df["position_lat"] * (180 / 2**31)
-        df["longitude"] = df["position_long"] * (180 / 2**31)
+        df["latitude"]  = df["position_lat"] * (180 / 2**31)
+        df["longitude"]  = df["position_long"] * (180 / 2**31)
 
-        df = df.dropna(subset=["latitude", "longitude"])
+    df = df.dropna(subset=["latitude", "longitude"])
 
-        # Create a map centered at the mean latitude/longitude
-        center_lat = df["latitude"].mean()
-        center_lon = df["longitude"].mean()
-        m = folium.Map(location=[center_lat, center_lon], zoom_start=13)
+    # Create a map centered at the mean latitude/longitude
+    center_lat = df["latitude"].mean()
+    center_lon = df["longitude"].mean()
+    m = folium.Map(location=[center_lat, center_lon], zoom_start=13)
 
-        # Plot the route by adding a polyline to the map
-        route = list(zip(df["latitude"], df["longitude"]))
-        folium.PolyLine(route, color="blue", weight=2.5, opacity=1).add_to(m)
+    # Plot the route by adding a polyline to the map
+    route = list(zip(df["latitude"], df["longitude"]))
+    folium.PolyLine(route, color="blue", weight=2.5, opacity=1).add_to(m)
 
-        # Add markers every 10 km
-        total_distance = 0
-        previous_point = route[0]
-        cumulative_distance = 0
-        total_distance = 0
+    # Add markers every 10 km
+    total_distance = 0
+    previous_point = route[0]
+    cumulative_distance = 0
+    total_distance = 0
 
-        for i in range(1, len(route)):
-            current_point = route[i]
-            distance = geodesic(previous_point, current_point).kilometers
-            cumulative_distance += distance  # Update the cumulative distance
+    for i in range(1, len(route)):
+        current_point = route[i]
+        distance = geodesic(previous_point, current_point).kilometers
+        cumulative_distance += distance  # Update the cumulative distance
 
-            # Check if the cumulative distance exceeds the next 10 km mark
-            if cumulative_distance >= 10.0:
-                total_distance += cumulative_distance
-                folium.Marker(
-                    location=current_point,
-                    popup=f"{total_distance:.0f} km",
-                    icon=folium.Icon(color="blue", icon="info-sign"),
-                ).add_to(m)
-                # Reset cumulative distance after placing a marker
-                cumulative_distance = 0
-            previous_point = current_point
+        # Check if the cumulative distance exceeds the next 10 km mark
+        if cumulative_distance >= 10.0:
+            total_distance += cumulative_distance
+            folium.Marker(
+                location=current_point,
+                popup=f"{total_distance:.0f} km",
+                icon=folium.Icon(color="blue", icon="info-sign"),
+            ).add_to(m)
+            # Reset cumulative distance after placing a marker
+            cumulative_distance = 0
+        previous_point = current_point
 
-        # Start & End markers
-        folium.Marker(
-            location=route[0],
-            popup="Start",
-            icon=folium.Icon(color="green", icon="play"),
-        ).add_to(m)
+    # Start & End markers
+    folium.Marker(
+        location=route[0],
+        popup="Start",
+        icon=folium.Icon(color="green", icon="play"),
+    ).add_to(m)
 
-        folium.Marker(
-            location=route[-1], popup="End", icon=folium.Icon(color="red", icon="stop")
-        ).add_to(m)
+    folium.Marker(
+        location=route[-1], popup="End", icon=folium.Icon(color="red", icon="stop")
+    ).add_to(m)
 
-        m.fit_bounds(route)
+    m.fit_bounds(route)
 
-        return m
+    return m
 
-    else:
-        return None
-
-def get_fit_summary(df: pd.DataFrame, ftp: float) -> pd.DataFrame:
+def get_summary(df: pd.DataFrame, ftp: float, format: Literal["gpx", "fit"]) -> pd.DataFrame:
     if "heart_rate" in df:
         heart_rate_avg = round(df["heart_rate"].mean(skipna=True))
         heart_rate_max = round(df["heart_rate"].quantile(q=0.99, interpolation="linear"))
     else:
         heart_rate_avg = heart_rate_max = None
 
+    if "timestamp" in df:
+        ts_column = "timestamp"
+    elif "time" in df:
+        ts_column = "time"
+        
     if "power" in df:
         power_avg        = round(df["power"].mean(skipna=True))
         power_max        = round(df["power"].quantile(q=0.99, interpolation="linear"))
         power_np         = get_normalized_power(df)
         intensity_factor = get_intensity_factor(power_np, ftp)
-        tss              = get_tss(power_np, ftp, get_duration_seconds(df), intensity_factor)
-        power_5          = get_max_avg_pwr(df, 5)
-        power_10         = get_max_avg_pwr(df, 10)
-        power_20         = get_max_avg_pwr(df, 20)
-        power_60         = get_max_avg_pwr(df, 60)
-        power_30s        = get_max_avg_pwr(df, 0.5)
+        tss              = get_tss(power_np, ftp, get_duration_seconds(df, ts_column), intensity_factor)
+        power_5          = get_max_avg_pwr(df, 5, ts_column)
+        power_10         = get_max_avg_pwr(df, 10, ts_column)
+        power_20         = get_max_avg_pwr(df, 20, ts_column)
+        power_60         = get_max_avg_pwr(df, 60, ts_column)
+        power_30s        = get_max_avg_pwr(df, 0.5, ts_column)
     else:
-        power_avg = power_max = power_np = intensity_factor = power_5 = power_10 = power_20 = power_60 = power_30s = None
+        power_avg = power_max = power_np = intensity_factor = power_5 = power_10 = power_20 = power_60 = power_30s = tss = None
 
     if "cadence" in df:
         cadence_avg = round(df["cadence"].mean(skipna=True))
@@ -291,6 +293,10 @@ def get_fit_summary(df: pd.DataFrame, ftp: float) -> pd.DataFrame:
     if "enhanced_speed" in df:
         speed_avg = round(df["enhanced_speed"].mean(skipna=True) * 3.6)
         speed_max = round(df["enhanced_speed"].quantile(q=0.99, interpolation="linear") * 3.6)
+    elif "speed" in df:
+        # For now, GPX files appear to contain `speed` expressed in mph; converting it to kmh
+        speed_avg = round(df["speed"].mean(skipna=True) * 1.609)
+        speed_max = round(df["speed"].quantile(q=0.99, interpolation="linear") * 1.609)
     else:
         speed_avg = speed_max = None
 
@@ -300,7 +306,10 @@ def get_fit_summary(df: pd.DataFrame, ftp: float) -> pd.DataFrame:
     else:
         temperature_avg = temperature_max = None
 
-    distance_km = round(df["distance"].max() / 1000)
+    if format == "fit":
+        distance_km = round(df["distance"].max() / 1000)
+    else:
+        distance_km = round(df["distance"].max())
     
     df0 = pd.DataFrame({
         'Avg BPM ❤️':         [heart_rate_avg],
@@ -321,7 +330,7 @@ def get_fit_summary(df: pd.DataFrame, ftp: float) -> pd.DataFrame:
         'Max kmh 🚴':         [speed_max],
         'Avg ℃ 🌡️':          [temperature_avg],
         'Max ℃ 🌡️':          [temperature_max],
-        'Total km 📏':        [distance_km]
+        'Dist km 📏':         [distance_km]
     })
     
     return df0
@@ -330,7 +339,6 @@ def get_normalized_power(df: pd.DataFrame) -> float:
     if "power" not in df:
         raise ValueError("The DataFrame does not contain a 'power' column")
     
-    # df                  = df[df['power'] > 0]
     rolling_power       = df['power'].rolling(window=30, min_periods=1).mean()
     rolling_power_4th   = rolling_power ** 4
     avg_4th_power       = rolling_power_4th.mean()
@@ -367,22 +375,22 @@ def get_duration_seconds(df: pd.DataFrame, column: str = 'timestamp') -> float:
 
     return elapsed_seconds
 
-def get_max_avg_pwr(df: pd.DataFrame, minutes: float) -> float:
-    if 'power' not in df or 'timestamp' not in df:
-        raise ValueError("The DataFrame must contain 'power' and 'timestamp' columns")
+def get_max_avg_pwr(df: pd.DataFrame,  minutes: float, time_column: str = 'timestamp') -> float:
+    if 'power' not in df or time_column not in df:
+        raise ValueError("The DataFrame must contain 'power' and {time_column} columns")
     
-    df = df.sort_values(by='timestamp').reset_index(drop=True)
+    df = df.sort_values(by=time_column).reset_index(drop=True)
     
-    if not pd.api.types.is_datetime64_any_dtype(df['timestamp']):
-        df['timestamp'] = pd.to_datetime(df['timestamp'])
+    if not pd.api.types.is_datetime64_any_dtype(df[time_column]):
+        df[time_column] = pd.to_datetime(df[time_column])
     
     window_seconds = minutes * 60
     max_avg_power  = 0
     
     for i in range(len(df)):
-        start_time  = df.loc[i, 'timestamp']
+        start_time  = df.loc[i, time_column]
         end_time    = start_time + pd.Timedelta(seconds=window_seconds)
-        window_data = df[(df['timestamp'] >= start_time) & (df['timestamp'] <= end_time)]
+        window_data = df[(df[time_column] >= start_time) & (df[time_column] <= end_time)]
         
         if not window_data.empty:
             avg_power = window_data['power'].mean(skipna=True)
