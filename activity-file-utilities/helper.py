@@ -261,7 +261,7 @@ def plot_map(df):
     else:
         return None
 
-def get_fit_summary(df: pd.DataFrame) -> pd.DataFrame:
+def get_fit_summary(df: pd.DataFrame, ftp: float) -> pd.DataFrame:
     if "heart_rate" in df:
         heart_rate_avg = round(df["heart_rate"].mean(skipna=True))
         heart_rate_max = round(df["heart_rate"].quantile(q=0.99, interpolation="linear"))
@@ -269,10 +269,18 @@ def get_fit_summary(df: pd.DataFrame) -> pd.DataFrame:
         heart_rate_avg = heart_rate_max = None
 
     if "power" in df:
-        power_avg = round(df["power"].mean(skipna=True))
-        power_max = round(df["power"].quantile(q=0.99, interpolation="linear"))
+        power_avg        = round(df["power"].mean(skipna=True))
+        power_max        = round(df["power"].quantile(q=0.99, interpolation="linear"))
+        power_np         = get_normalized_power(df)
+        intensity_factor = get_intensity_factor(power_np, ftp)
+        tss              = get_tss(power_np, ftp, get_duration_seconds(df), intensity_factor)
+        power_5          = get_max_avg_pwr(df, 5)
+        power_10         = get_max_avg_pwr(df, 10)
+        power_20         = get_max_avg_pwr(df, 20)
+        power_60         = get_max_avg_pwr(df, 60)
+        power_30s        = get_max_avg_pwr(df, 0.5)
     else:
-        power_avg = power_max = None
+        power_avg = power_max = power_np = intensity_factor = power_5 = power_10 = power_20 = power_60 = None
 
     if "cadence" in df:
         cadence_avg = round(df["cadence"].mean(skipna=True))
@@ -295,17 +303,90 @@ def get_fit_summary(df: pd.DataFrame) -> pd.DataFrame:
     distance_km = round(df["distance"].max() / 1000)
     
     df0 = pd.DataFrame({
-        'Avg BPM (❤️)':   [heart_rate_avg],
-        'Max BPM (❤️)':   [heart_rate_max],
-        'Avg Watts (⚡)': [power_avg],
-        'Max Watts (⚡)': [power_max],
-        'Avg RPM (🌪️)':   [cadence_avg],
-        'Max RPM (🌪️)':   [cadence_max],
-        'Avg KmH (🚴)':   [speed_avg],
-        'Max KmH (🚴)':   [speed_max],
-        'Avg ℃ (🌡️)':    [temperature_avg],
-        'Max ℃ ()':    [temperature_max],
-        'Total Km (📏)':  [distance_km]
+        'Avg BPM ❤️':         [heart_rate_avg],
+        'Max BPM ❤️':         [heart_rate_max],
+        'Avg W ⚡':           [power_avg],
+        'Max W ⚡':           [power_max],
+        'Max W 30s ⚡':       [power_30s],
+        'Max W 5m ⚡':        [power_5],
+        'Max W 10m ⚡':       [power_10],
+        'Max W 20m ⚡':       [power_20],
+        'Max W 60m ⚡':       [power_60],
+        'NP® W ⚡':           [power_np],
+        "IF®":                [intensity_factor],
+        "TSS®":               [tss],
+        'Avg RPM 🌪️':         [cadence_avg],
+        'Max RPM 🌪️':         [cadence_max],
+        'Avg kmh 🚴':         [speed_avg],
+        'Max kmh 🚴':         [speed_max],
+        'Avg ℃ 🌡️':          [temperature_avg],
+        'Max ℃ 🌡️':          [temperature_max],
+        'Total km 📏':        [distance_km]
     })
     
     return df0
+
+def get_normalized_power(df: pd.DataFrame) -> float:
+    if "power" not in df:
+        raise ValueError("The DataFrame does not contain a 'power' column")
+    
+    # df                  = df[df['power'] > 0]
+    rolling_power       = df['power'].rolling(window=30, min_periods=1).mean()
+    rolling_power_4th   = rolling_power ** 4
+    avg_4th_power       = rolling_power_4th.mean()
+    normalized_power    = avg_4th_power ** (1 / 4)
+
+    return round(normalized_power)
+
+def get_intensity_factor(normalized_power: float, ftp: float) -> float:
+    if ftp <= 0:
+        raise ValueError("FTP must be a positive number")
+
+    intensity_factor = normalized_power / ftp
+    return round(intensity_factor, 3)
+
+def get_tss(normalized_power: float, ftp: float, duration_seconds: float, intensity_factor: float) -> float:
+    if ftp <= 0 or duration_seconds <= 0:
+        raise ValueError("FTP and duration must be positive numbers")
+    
+    tss = (duration_seconds * normalized_power * intensity_factor) / (ftp * 3600) * 100
+    return round(tss, 1)
+
+def get_duration_seconds(df: pd.DataFrame, column: str = 'timestamp') -> float:
+    if column not in df.columns:
+        raise ValueError(f"Column '{column}' not found in the DataFrame")
+
+    if not pd.api.types.is_datetime64_any_dtype(df[column]):
+        try:
+            df[column] = pd.to_datetime(df[column])
+        except Exception as e:
+            raise ValueError(f"Error converting '{column}' to datetime: {e}")
+
+    time_difference = df[column].max() - df[column].min()
+    elapsed_seconds = time_difference.total_seconds()
+
+    return elapsed_seconds
+
+def get_max_avg_pwr(df: pd.DataFrame, minutes: float) -> float:
+    if 'power' not in df or 'timestamp' not in df:
+        raise ValueError("The DataFrame must contain 'power' and 'timestamp' columns")
+    
+    df = df.sort_values(by='timestamp').reset_index(drop=True)
+    
+    if not pd.api.types.is_datetime64_any_dtype(df['timestamp']):
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+    
+    window_seconds = minutes * 60
+    max_avg_power  = 0
+    
+    for i in range(len(df)):
+        start_time  = df.loc[i, 'timestamp']
+        end_time    = start_time + pd.Timedelta(seconds=window_seconds)
+        window_data = df[(df['timestamp'] >= start_time) & (df['timestamp'] <= end_time)]
+        
+        if not window_data.empty:
+            avg_power = window_data['power'].mean(skipna=True)
+            if avg_power > max_avg_power:
+                max_avg_power = avg_power
+
+    return round(max_avg_power)

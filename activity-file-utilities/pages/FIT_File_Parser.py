@@ -11,12 +11,13 @@ st.set_page_config(
 )
 
 st.title("FIT File Utilities")
+ftp           = st.number_input("Intensity Factor (IF): ", 200)
 uploaded_file = st.file_uploader("Choose a FIT file", type=["fit"])
 
 if uploaded_file is not None:
     try:
         activity    = h.parse_fit_file(uploaded_file)
-        summary     = h.get_fit_summary(activity)
+        summary     = h.get_fit_summary(activity, ftp)
     except Exception as e:
         st.error(e)
 
@@ -24,9 +25,8 @@ if uploaded_file is not None:
         st.subheader("Route Map")
         route_map = h.plot_map(activity)
         if route_map:
-            st_folium(
-                route_map, use_container_width=True, key="map", returned_objects=[]
-            )
+            st_folium(route_map, use_container_width=True, key="map", returned_objects=[])
+            
         else:
             st.write("No latitude/longitude data available in this FIT file.")
 
