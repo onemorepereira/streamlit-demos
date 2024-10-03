@@ -561,7 +561,7 @@ def get_chart_data(df: pd.DataFrame, y_col: str, x_col: str) -> pd.DataFrame:
     chart_data.set_index(x_col, inplace=True)
     return chart_data
 
-def aggregate_by_time(df: pd.DataFrame, timestamp_col: str, interval: str = '5T') -> pd.DataFrame:
+def aggregate_by_time(df: pd.DataFrame, timestamp_col: str, interval: str = '5min') -> pd.DataFrame:
     if timestamp_col not in df.columns:
         raise ValueError(f"Column '{timestamp_col}' does not exist in the DataFrame.")
     
