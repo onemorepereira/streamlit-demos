@@ -260,8 +260,9 @@ def plot_map(df):
 
 def get_summary(df: pd.DataFrame, ftp: float, format: Literal["gpx", "fit"]) -> pd.DataFrame:
     if "heart_rate" in df:
-        heart_rate_avg = round(df["heart_rate"].mean(skipna=True))
-        heart_rate_max = round(df["heart_rate"].quantile(q=0.99, interpolation="linear"))
+        heart_rate_avg = round(df[df["heart_rate"] != 0]["heart_rate"].mean(skipna=True))
+        # heart_rate_max = round(df["heart_rate"].quantile(q=0.99, interpolation="linear"))
+        heart_rate_max = round(df["heart_rate"].max())
     else:
         heart_rate_avg = heart_rate_max = None
 
@@ -271,8 +272,9 @@ def get_summary(df: pd.DataFrame, ftp: float, format: Literal["gpx", "fit"]) -> 
         ts_column = "time"
         
     if "power" in df:
-        power_avg        = round(df["power"].mean(skipna=True))
-        power_max        = round(df["power"].quantile(q=0.99, interpolation="linear"))
+        power_avg        = round(df[df["power"] != 0]["power"].mean(skipna=True))
+        # power_max        = round(df["power"].quantile(q=0.99, interpolation="linear"))
+        power_max        = round(df["power"].max())
         power_np         = get_normalized_power(df)
         intensity_factor = get_intensity_factor(power_np, ftp)
         tss              = get_tss(power_np, ftp, get_duration_seconds(df, ts_column), intensity_factor)
@@ -286,23 +288,27 @@ def get_summary(df: pd.DataFrame, ftp: float, format: Literal["gpx", "fit"]) -> 
 
     if "cadence" in df:
         cadence_avg = round(df["cadence"].mean(skipna=True))
-        cadence_max = round(df["cadence"].quantile(q=0.99, interpolation="linear"))
+        # cadence_max = round(df["cadence"].quantile(q=0.99, interpolation="linear"))
+        cadence_max = round(df["cadence"].max())
     else:
         cadence_avg = cadence_max = 0
 
     if "enhanced_speed" in df:
         speed_avg = round(df["enhanced_speed"].mean(skipna=True) * 3.6)
-        speed_max = round(df["enhanced_speed"].quantile(q=0.99, interpolation="linear") * 3.6)
+        # speed_max = round(df["enhanced_speed"].quantile(q=0.99, interpolation="linear") * 3.6)
+        speed_max = round(df["enhanced_speed"].max() * 3.6)
     elif "speed" in df:
         # For now, GPX files appear to contain `speed` expressed in mph; converting it to kmh
         speed_avg = round(df["speed"].mean(skipna=True) * 1.609)
-        speed_max = round(df["speed"].quantile(q=0.99, interpolation="linear") * 1.609)
+        # speed_max = round(df["speed"].quantile(q=0.99, interpolation="linear") * 1.609)
+        speed_max = round(df["speed"].max() * 1.609)
     else:
         speed_avg = speed_max = 0
 
     if "temperature" in df:
         temperature_avg = round(df["temperature"].mean(skipna=True))
-        temperature_max = round(df["temperature"].quantile(q=0.99, interpolation="linear"))
+        # temperature_max = round(df["temperature"].quantile(q=0.99, interpolation="linear"))
+        temperature_max = round(df["temperature"].max())
     else:
         temperature_avg = temperature_max = 0
 
