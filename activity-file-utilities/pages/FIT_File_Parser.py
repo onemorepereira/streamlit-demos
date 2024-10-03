@@ -23,8 +23,6 @@ if uploaded_file is not None:
             activity = h.gpx_to_dataframe(uploaded_file)
             summary  = h.get_summary(activity, ftp, format="gpx")
         
-        activity_5m = h.aggregate_by_time(activity, 'timestamp', '5T')
-
     except Exception as e:
         st.error(e)
 
