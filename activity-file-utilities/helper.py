@@ -500,7 +500,6 @@ def get_stopped_time(df: pd.DataFrame, time_column: str = 'timestamp') -> str:
     return f"{hours}h {minutes}m {seconds}s"
 
 def get_work_time(df: pd.DataFrame, time_column: str = 'timestamp') -> str:
-    # Check if required columns exist
     if 'power' not in df or 'cadence' not in df or time_column not in df:
         raise ValueError(f"The DataFrame must contain 'power', 'cadence', and '{time_column}' columns")
     
@@ -508,24 +507,18 @@ def get_work_time(df: pd.DataFrame, time_column: str = 'timestamp') -> str:
     if not pd.api.types.is_datetime64_any_dtype(df[time_column]):
         df[time_column] = pd.to_datetime(df[time_column])
     
-    # Sort the DataFrame by time and reset the index
     df = df.sort_values(by=time_column).reset_index(drop=True)
     
     # Calculate the time difference between consecutive rows
     df['time_diff'] = df[time_column].diff().dt.total_seconds().fillna(0)
     
     # Filter rows where either power or cadence is greater than 0
-    active_time_df = df[(df['power'] > 0) | (df['cadence'] > 0)]
-    
-    # Sum the time differences where power or cadence was greater than 0
+    active_time_df       = df[(df['power'] > 0) | (df['cadence'] > 0)]
     total_active_seconds = active_time_df['time_diff'].sum()
-    
-    # Convert total seconds to hours, minutes, and seconds
-    total_seconds = int(total_active_seconds)
-    hours, remainder = divmod(total_seconds, 3600)
-    minutes, seconds = divmod(remainder, 60)
+    total_seconds        = int(total_active_seconds)
+    hours, remainder     = divmod(total_seconds, 3600)
+    minutes, seconds     = divmod(remainder, 60)
 
-    # Return the formatted time as a string
     return f"{hours}h {minutes}m {seconds}s"
 
 def get_total_time(df: pd.DataFrame, time_column: str = 'timestamp') -> str:
