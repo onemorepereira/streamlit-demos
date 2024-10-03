@@ -365,10 +365,20 @@ def get_normalized_power(df: pd.DataFrame) -> float:
     if "power" not in df:
         raise ValueError("The DataFrame does not contain a 'power' column")
     
+    # Drop null values from the 'power' column
+    df = df.dropna(subset=["power"])
+    
+    # Check if there are still values left after dropping nulls
+    if df.empty:
+        raise ValueError("The DataFrame contains only null values in the 'power' column")
+    
     rolling_power       = df['power'].rolling(window=30, min_periods=1).mean()
     rolling_power_4th   = rolling_power ** 4
     avg_4th_power       = rolling_power_4th.mean()
     normalized_power    = avg_4th_power ** (1 / 4)
+
+    return round(normalized_power)
+
 
     return round(normalized_power)
 
