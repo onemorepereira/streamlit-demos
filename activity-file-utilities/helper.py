@@ -529,7 +529,6 @@ def get_work_time(df: pd.DataFrame, time_column: str = 'timestamp') -> str:
     return f"{hours}h {minutes}m {seconds}s"
 
 def get_total_time(df: pd.DataFrame, time_column: str = 'timestamp') -> str:
-    # Check if the time column exists
     if time_column not in df:
         raise ValueError(f"The DataFrame must contain the '{time_column}' column")
     
@@ -537,21 +536,15 @@ def get_total_time(df: pd.DataFrame, time_column: str = 'timestamp') -> str:
     if not pd.api.types.is_datetime64_any_dtype(df[time_column]):
         df[time_column] = pd.to_datetime(df[time_column])
     
-    # Sort the DataFrame by time and reset the index
     df = df.sort_values(by=time_column).reset_index(drop=True)
     
     # Calculate the time difference between consecutive rows
-    df['time_diff'] = df[time_column].diff().dt.total_seconds().fillna(0)
-    
-    # Sum the total time differences
+    df['time_diff']    = df[time_column].diff().dt.total_seconds().fillna(0)
     total_time_seconds = df['time_diff'].sum()
-    
-    # Convert total seconds to hours, minutes, and seconds
-    total_seconds = int(total_time_seconds)
-    hours, remainder = divmod(total_seconds, 3600)
-    minutes, seconds = divmod(remainder, 60)
+    total_seconds      = int(total_time_seconds)
+    hours, remainder   = divmod(total_seconds, 3600)
+    minutes, seconds   = divmod(remainder, 60)
 
-    # Return the formatted time as a string
     return f"{hours}h {minutes}m {seconds}s"
 
 def get_chart_data(df: pd.DataFrame, y_col: str, x_col: str) -> pd.DataFrame:
