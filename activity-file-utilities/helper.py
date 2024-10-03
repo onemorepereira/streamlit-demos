@@ -411,18 +411,22 @@ def get_duration_seconds(df: pd.DataFrame, column: str = 'timestamp') -> float:
 
     return elapsed_seconds
 
-def get_max_avg_pwr(df: pd.DataFrame,  minutes: float, time_column: str = 'timestamp') -> float:
+def get_max_avg_pwr(df: pd.DataFrame, minutes: float, time_column: str = 'timestamp') -> float:
     if 'power' not in df or time_column not in df:
-        raise ValueError("The DataFrame must contain 'power' and {time_column} columns")
+        raise ValueError(f"The DataFrame must contain 'power' and '{time_column}' columns")
     
     df = df.sort_values(by=time_column).reset_index(drop=True)
-    
     if not pd.api.types.is_datetime64_any_dtype(df[time_column]):
         df[time_column] = pd.to_datetime(df[time_column])
     
-    window_seconds = minutes * 60
-    max_avg_power  = 0
+    window_seconds  = minutes * 60
+    total_time_span = (df[time_column].max() - df[time_column].min()).total_seconds()
+
+    if total_time_span < window_seconds:
+        return 0
     
+    # Sliding window calculation
+    max_avg_power = 0
     for i in range(len(df)):
         start_time  = df.loc[i, time_column]
         end_time    = start_time + pd.Timedelta(seconds=window_seconds)
@@ -432,7 +436,6 @@ def get_max_avg_pwr(df: pd.DataFrame,  minutes: float, time_column: str = 'times
             avg_power = window_data['power'].mean(skipna=True)
             if avg_power > max_avg_power:
                 max_avg_power = avg_power
-
     return round(max_avg_power)
 
 def get_coasting(df: pd.DataFrame, time_column: str = 'timestamp') -> str:
