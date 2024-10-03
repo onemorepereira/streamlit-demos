@@ -566,9 +566,7 @@ def aggregate_by_time(df: pd.DataFrame, timestamp_col: str, interval: str = '5mi
         raise ValueError(f"Column '{timestamp_col}' does not exist in the DataFrame.")
     
     df[timestamp_col] = pd.to_datetime(df[timestamp_col])
-    
-    df = df.set_index(timestamp_col)
-    
-    aggregated_df = df.resample(interval).apply(lambda x: x.quantile(0.99)).reset_index()
+    df                = df.set_index(timestamp_col)
+    aggregated_df     = df.resample(interval).apply(lambda x: x.quantile(0.99)).reset_index()
         
     return aggregated_df
