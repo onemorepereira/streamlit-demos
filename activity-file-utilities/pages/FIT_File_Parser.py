@@ -29,51 +29,51 @@ if uploaded_file is not None:
     try:
         col1, col2, col3, col4, col5 = st.columns([1,1,1,1,4], vertical_alignment='top', gap='small')
         with col1:
-            st.subheader("Heart Rate")
-            st.metric(label='Avg BPM ❤️',   value=summary['Avg BPM ❤️'])
-            st.metric(label='Max BPM ❤️',   value=summary['Max BPM ❤️'])
+            st.subheader("Time")
+            st.metric(label='Coasting 🕰️',     value=summary['time_coasting'].iloc[0])
+            st.metric(label='Stopped 🕰️',      value=summary['time_stopped'].iloc[0])
+            st.metric(label='Working 🕰️',      value=summary['time_working'].iloc[0])
+            st.metric(label='Total 🕰️',        value=summary['time_total'].iloc[0])
             st.divider()
             
             st.subheader("Temps")
-            st.metric(label='Avg ℃ 🌡️',    value=summary['Avg ℃ 🌡️'])
-            st.metric(label='Max ℃ 🌡️',    value=summary['Max ℃ 🌡️'])
+            st.metric(label='Avg ℃ 🌡️',    value=summary['temp_avg'])
+            st.metric(label='Max ℃ 🌡️',    value=summary['temp_max'])
             
         with col2:
             st.subheader("Power")
-            st.metric(label='Avg W ⚡',     value=summary['Avg W ⚡'])
-            st.metric(label='Max W ⚡',     value=summary['Max W ⚡'])
+            st.metric(label='Avg W ⚡',     value=summary['power_avg'])
+            st.metric(label='Max W ⚡',     value=summary['power_max'])
             st.divider()
             
             st.subheader("Intensity")
-            st.metric(label='NP® W ⚡',     value=summary['NP® W ⚡'])
-            st.metric(label='IF®',          value=summary['IF®'])
-            st.metric(label='TSS®',         value=summary['TSS®'])
+            st.metric(label='NP® W ⚡',     value=summary['power_normalized'])
+            st.metric(label='IF®',          value=summary['intensity_factor'])
+            st.metric(label='TSS®',         value=summary['tss'])
         
         with col3:
             st.subheader("Power Avgs")
-            st.metric(label='Max W 30s ⚡', value=summary['Max W 30s ⚡'])
-            st.metric(label='Max W 5m ⚡',  value=summary['Max W 5m ⚡'])
-            # st.metric(label='Max W 10m ⚡', value=summary['Max W 10m ⚡'])
-            st.metric(label='Max W 20m ⚡', value=summary['Max W 20m ⚡'])
-            st.metric(label='Max W 60m ⚡', value=summary['Max W 60m ⚡'])
+            st.metric(label='Max W 30s ⚡', value=summary['power_max_avg_30s'])
+            st.metric(label='Max W 5m ⚡',  value=summary['power_max_avg_5m'])
+            # st.metric(label='Max W 10m ⚡', value=summary['power_max_avg_10m'])
+            st.metric(label='Max W 20m ⚡', value=summary['power_max_avg_20m'])
+            st.metric(label='Max W 60m ⚡', value=summary['power_max_avg_60m'])
             st.divider()
             
             st.subheader("Speed")
-            st.metric(label='Avg kmh 🚴',   value=summary['Avg kmh 🚴'])
-            st.metric(label='Max kmh 🚴',   value=summary['Max kmh 🚴'])
-            st.metric(label='Dist km 📏',   value=summary['Dist km 📏'])
+            st.metric(label='Avg kmh 🚴',   value=summary['speed_avg'])
+            st.metric(label='Max kmh 🚴',   value=summary['speed_max'])
+            st.metric(label='Dist km 📏',   value=summary['distance_total'])
             
         with col4:
             st.subheader("Cadence")
-            st.metric(label='Avg RPM 🌪️',   value=summary['Avg RPM 🌪️'])
-            st.metric(label='Max RPM 🌪️',   value=summary['Max RPM 🌪️'])
+            st.metric(label='Avg RPM 🌪️',   value=summary['cadence_avg'])
+            st.metric(label='Max RPM 🌪️',   value=summary['cadence_max'])
             st.divider()
             
-            st.subheader("Time")
-            st.metric(label='Coasting',     value=summary['Coasting'].iloc[0])
-            st.metric(label='Stopped',      value=summary['Stopped'].iloc[0])
-            st.metric(label='Working',      value=summary['Working'].iloc[0])
-            st.metric(label='Total',        value=summary['Total'].iloc[0])
+            st.subheader("Heart Rate")
+            st.metric(label='Avg BPM ❤️',   value=summary['hr_avg'])
+            st.metric(label='Max BPM ❤️',   value=summary['hr_max'])
             
         with col5:
             st.subheader("Map")
