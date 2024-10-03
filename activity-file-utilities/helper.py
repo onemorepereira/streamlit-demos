@@ -436,7 +436,6 @@ def get_max_avg_pwr(df: pd.DataFrame,  minutes: float, time_column: str = 'times
     return round(max_avg_power)
 
 def get_coasting(df: pd.DataFrame, time_column: str = 'timestamp') -> str:
-    # Check if required columns exist
     if 'power' not in df or 'cadence' not in df or ('speed' not in df and 'enhanced_speed' not in df) or time_column not in df:
         raise ValueError(f"The DataFrame must contain 'power', 'cadence', 'speed', and '{time_column}' columns")
     
@@ -444,7 +443,6 @@ def get_coasting(df: pd.DataFrame, time_column: str = 'timestamp') -> str:
     if not pd.api.types.is_datetime64_any_dtype(df[time_column]):
         df[time_column] = pd.to_datetime(df[time_column])
     
-    # Sort the DataFrame by time and reset the index
     df = df.sort_values(by=time_column).reset_index(drop=True)
     
     # Calculate the time difference between consecutive rows
@@ -456,15 +454,11 @@ def get_coasting(df: pd.DataFrame, time_column: str = 'timestamp') -> str:
     elif 'enhanced_speed' in df:
         zero_power_or_cadence_while_moving = df[(df['enhanced_speed'] > 0) & ((df['power'] == 0) | (df['cadence'] == 0))]
     
-    # Sum the time differences where power or cadence was zero while moving
     total_time_seconds = zero_power_or_cadence_while_moving['time_diff'].sum()
-    
-    # Convert total seconds to hours, minutes, and seconds
-    total_seconds = int(total_time_seconds)
-    hours, remainder = divmod(total_seconds, 3600)
-    minutes, seconds = divmod(remainder, 60)
+    total_seconds      = int(total_time_seconds)
+    hours, remainder   = divmod(total_seconds, 3600)
+    minutes, seconds   = divmod(remainder, 60)
 
-    # Return the formatted time as a string
     return f"{hours}h {minutes}m {seconds}s"
 
 def get_stopped_time(df: pd.DataFrame, time_column: str = 'timestamp') -> str:
