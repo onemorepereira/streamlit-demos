@@ -23,6 +23,8 @@ if uploaded_file is not None:
             activity = h.gpx_to_dataframe(uploaded_file)
             summary  = h.get_summary(activity, ftp, format="gpx")
         
+        activity_5m = h.aggregate_by_time(activity, 'timestamp', '5T')
+
     except Exception as e:
         st.error(e)
 
@@ -32,6 +34,7 @@ if uploaded_file is not None:
             st.subheader("Heart Rate")
             st.metric(label='Avg BPM ❤️',   value=summary['Avg BPM ❤️'])
             st.metric(label='Max BPM ❤️',   value=summary['Max BPM ❤️'])
+            st.divider()
             
             st.subheader("Temps")
             st.metric(label='Avg ℃ 🌡️',    value=summary['Avg ℃ 🌡️'])
@@ -41,17 +44,21 @@ if uploaded_file is not None:
             st.subheader("Power")
             st.metric(label='Avg W ⚡',     value=summary['Avg W ⚡'])
             st.metric(label='Max W ⚡',     value=summary['Max W ⚡'])
-            st.metric(label='Max W 30s ⚡', value=summary['Max W 30s ⚡'])
-            st.metric(label='Max W 5m ⚡',  value=summary['Max W 5m ⚡'])
-            st.metric(label='Max W 10m ⚡', value=summary['Max W 10m ⚡'])
-            st.metric(label='Max W 20m ⚡', value=summary['Max W 20m ⚡'])
-            st.metric(label='Max W 60m ⚡', value=summary['Max W 60m ⚡'])
+            st.divider()
             
-        with col3:
             st.subheader("Intensity")
             st.metric(label='NP® W ⚡',     value=summary['NP® W ⚡'])
             st.metric(label='IF®',          value=summary['IF®'])
             st.metric(label='TSS®',         value=summary['TSS®'])
+        
+        with col3:
+            st.subheader("Power Avgs")
+            st.metric(label='Max W 30s ⚡', value=summary['Max W 30s ⚡'])
+            st.metric(label='Max W 5m ⚡',  value=summary['Max W 5m ⚡'])
+            # st.metric(label='Max W 10m ⚡', value=summary['Max W 10m ⚡'])
+            st.metric(label='Max W 20m ⚡', value=summary['Max W 20m ⚡'])
+            st.metric(label='Max W 60m ⚡', value=summary['Max W 60m ⚡'])
+            st.divider()
             
             st.subheader("Speed")
             st.metric(label='Avg kmh 🚴',   value=summary['Avg kmh 🚴'])
@@ -62,6 +69,7 @@ if uploaded_file is not None:
             st.subheader("Cadence")
             st.metric(label='Avg RPM 🌪️',   value=summary['Avg RPM 🌪️'])
             st.metric(label='Max RPM 🌪️',   value=summary['Max RPM 🌪️'])
+            st.divider()
             
             st.subheader("Time")
             st.metric(label='Coasting',     value=summary['Coasting'].iloc[0])

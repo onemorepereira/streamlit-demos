@@ -365,10 +365,20 @@ def get_normalized_power(df: pd.DataFrame) -> float:
     if "power" not in df:
         raise ValueError("The DataFrame does not contain a 'power' column")
     
+    # Drop null values from the 'power' column
+    df = df.dropna(subset=["power"])
+    
+    # Check if there are still values left after dropping nulls
+    if df.empty:
+        raise ValueError("The DataFrame contains only null values in the 'power' column")
+    
     rolling_power       = df['power'].rolling(window=30, min_periods=1).mean()
     rolling_power_4th   = rolling_power ** 4
     avg_4th_power       = rolling_power_4th.mean()
     normalized_power    = avg_4th_power ** (1 / 4)
+
+    return round(normalized_power)
+
 
     return round(normalized_power)
 
@@ -543,3 +553,22 @@ def get_total_time(df: pd.DataFrame, time_column: str = 'timestamp') -> str:
 
     # Return the formatted time as a string
     return f"{hours}h {minutes}m {seconds}s"
+
+def get_chart_data(df: pd.DataFrame, y_col: str, x_col: str) -> pd.DataFrame:
+    if not all(col in df.columns for col in [y_col, x_col]):
+        raise ValueError("One or more specified columns do not exist in the DataFrame.")
+    chart_data = df[[x_col, y_col]].copy()
+    chart_data.set_index(x_col, inplace=True)
+    return chart_data
+
+def aggregate_by_time(df: pd.DataFrame, timestamp_col: str, interval: str = '5T') -> pd.DataFrame:
+    if timestamp_col not in df.columns:
+        raise ValueError(f"Column '{timestamp_col}' does not exist in the DataFrame.")
+    
+    df[timestamp_col] = pd.to_datetime(df[timestamp_col])
+    
+    df = df.set_index(timestamp_col)
+    
+    aggregated_df = df.resample(interval).apply(lambda x: x.quantile(0.99)).reset_index()
+        
+    return aggregated_df
