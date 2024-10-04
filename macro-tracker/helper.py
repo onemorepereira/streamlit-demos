@@ -67,3 +67,30 @@ def agg_df(df: pd.DataFrame):
     except Exception as e:
         logging.error(e)
         return None
+
+def weekly_nutrient_summary(food_intake_df):
+    food_intake_df['Date'] = pd.to_datetime(food_intake_df['Date'])
+
+    weekly_summary = food_intake_df.groupby(pd.Grouper(key='Date', freq='W-MON')).agg(
+        total_protein=('Total Protein (g)', 'sum'),
+        total_carbs=('Total Carbs (g)', 'sum'),
+        total_fat=('Total Fat (g)', 'sum'),
+        total_calories=('Total Calories', 'sum'),
+    )
+    
+    weekly_summary['protein_pct']    = round((weekly_summary['total_protein'] * 4 / weekly_summary['total_calories']) * 100)
+    weekly_summary['carbs_pct']      = round((weekly_summary['total_carbs'] * 4 / weekly_summary['total_calories']) * 100)
+    weekly_summary['fat_pct']        = round((weekly_summary['total_fat'] * 9 / weekly_summary['total_calories']) * 100)
+    
+    primary_sources = food_intake_df.groupby(pd.Grouper(key='Date', freq='W-MON')).apply(
+        lambda x: pd.Series({
+            'primary_protein_source': x.loc[x['Total Protein (g)'].idxmax()]['Name'],
+            'primary_carbs_source': x.loc[x['Total Carbs (g)'].idxmax()]['Name'],
+            'primary_fat_source': x.loc[x['Total Fat (g)'].idxmax()]['Name'],
+            'primary_caloric_source': x.loc[x['Total Calories'].idxmax()]['Name']
+        })
+    )
+    
+    weekly_summary = weekly_summary.merge(primary_sources, left_index=True, right_index=True)
+    
+    return weekly_summary

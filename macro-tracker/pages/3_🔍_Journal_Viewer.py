@@ -1,5 +1,4 @@
 import streamlit as st
-import pandas as pd
 import os
 import logging
 from datetime import date
@@ -20,43 +19,53 @@ if os.path.exists(JOURNAL_FILE):
     if journal_df is not None:
         st.session_state["journal_items"] = journal_df.to_dict(orient='records')
         
-        # Display the DataFrame on the screen
+        # Some massaging required
+        aggregated      = h.agg_df(df=journal_df)
+        wky_summary     = h.weekly_nutrient_summary(journal_df)
+ 
+        m2w_week =  wky_summary.index[-3].strftime('%m/%d/%Y')
+        lst_week =  wky_summary.index[-2].strftime('%m/%d/%Y')
+        this_week = wky_summary.index[-1].strftime('%m/%d/%Y')
+        
+        st.subheader("Last Week Snapshot - {} vs {}".format(lst_week, m2w_week))
+        col1, col2, col3, col4 = st.columns([1,1,1,1])
+        with col1:
+            st.metric(label='Proteins', value="{:,.0f}".format(round(wky_summary['total_protein'].iloc[-2])), delta='{:,.0f}'.format(round(wky_summary['total_protein'].iloc[-2] - wky_summary['total_protein'].iloc[-3])))
+            st.divider()
+        with col2:
+            st.metric(label='Carbohydrates', value="{:,.0f}".format(round(wky_summary['total_carbs'].iloc[-2])), delta='{:,.0f}'.format(round(wky_summary['total_carbs'].iloc[-2] - wky_summary['total_carbs'].iloc[-3])))
+            st.divider()
+        with col3:
+            st.metric(label='Fats', value="{:,.0f}".format(round(wky_summary['total_fat'].iloc[-2])), delta='{:,.0f}'.format(round(wky_summary['total_fat'].iloc[-2] - wky_summary['total_fat'].iloc[-3])))
+            st.divider()
+        with col4:
+            st.metric(label='Calories', value="{:,.0f}".format(round(wky_summary['total_calories'].iloc[-2])), delta='{:,.0f}'.format(round(wky_summary['total_calories'].iloc[-2] - wky_summary['total_calories'].iloc[-3])))
+            st.divider()
+            
+        st.subheader("This Week Trend - {} vs {}".format(this_week, lst_week))
+        col1, col2, col3, col4 = st.columns([1,1,1,1])
+        with col1:
+            st.metric(label='Proteins', value="{:,.0f}".format(round(wky_summary['total_protein'].iloc[-1])), delta='{:,.0f}'.format(round(wky_summary['total_protein'].iloc[-1] - wky_summary['total_protein'].iloc[-2])))
+            st.divider()
+        with col2:
+            st.metric(label='Carbohydrates', value="{:,.0f}".format(round(wky_summary['total_carbs'].iloc[-1])), delta='{:,.0f}'.format(round(wky_summary['total_carbs'].iloc[-1] - wky_summary['total_carbs'].iloc[-2])))
+            st.divider()
+        with col3:
+            st.metric(label='Fats', value="{:,.0f}".format(round(wky_summary['total_fat'].iloc[-1])), delta='{:,.0f}'.format(round(wky_summary['total_fat'].iloc[-1] - wky_summary['total_fat'].iloc[-2])))
+            st.divider()
+        with col4:
+            st.metric(label='Calories', value="{:,.0f}".format(round(wky_summary['total_calories'].iloc[-1])), delta='{:,.0f}'.format(round(wky_summary['total_calories'].iloc[-1] - wky_summary['total_calories'].iloc[-2])))
+            st.divider()
+                   
+        # Display the DataFrames
         st.write("### Journal Entries")
         st.dataframe(journal_df)
         
-        # Some massaging required
-        aggregated      = h.agg_df(df=journal_df)
-        melted_data     = aggregated.melt(id_vars='Date', var_name='macros', value_name='amount')
+        st.write('### Primary Macro Sources by week')
+        st.dataframe(wky_summary)
         
-        # 7 day rolling average
-        melted_data['Date'] = pd.to_datetime(melted_data['Date'])
-        melted_data         = melted_data.sort_values(by=['macros', 'Date'])
+ 
         
-        melted_data.set_index('Date', inplace=True)
-        melted_data['Running Average'] = melted_data.groupby('macros')['amount'].rolling('7D', min_periods=1).mean().reset_index(level=0, drop=True)
-        
-        melted_data.reset_index(inplace=True)
-        
-        melted_data = melted_data[melted_data['macros'] != 'Total Calories']
-        melted_data = melted_data[melted_data['macros'] != 'Total Weight (g)']
-        st.write('### Rolling Averages')
-        st.dataframe(melted_data)
-        
-        averages = alt.Chart(data=melted_data, width=1250, height=425).mark_line().encode(
-            x = 'Date:T',
-            y = alt.Y('sum(Running Average):Q', 
-                    #   stack='center',
-                      title='Grams'
-                    #   scale=alt.Scale(domain=[0, 500])
-                      ),
-            color = alt.Color('macros', 
-                              legend=alt.Legend(orient='top')
-                              ).title('7 Day Running Average')
-            )
-
-        # Leave only carbs, protein, and fat
-        filtered_data   = melted_data[melted_data['macros'] != 'Total Calories']
-        filtered_data   = filtered_data[filtered_data['macros'] != 'Total Weight (g)']
 
 else:
     st.write("No journal file found.")
