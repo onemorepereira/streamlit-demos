@@ -39,10 +39,10 @@ if os.path.exists(NUTRITION_VALUES):
         st.session_state["items"] = nutrition_df.to_dict(orient='records')
 
 # Streamlit App Title
-st.title("Nutritional Calculator")
+# st.title("Nutritional Calculator")
 
 # Ingredient Selection
-st.subheader("Select Food Items")
+# st.subheader("Select Food Items")
 selected_ingredients = st.multiselect("Choose Food(s):", nutrition_df['Name'], key='multiselect')
 
 # Initialize an empty list to store results
