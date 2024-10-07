@@ -1,11 +1,14 @@
 from geopy.distance import geodesic
 from math import radians, sin, cos, sqrt, atan2
+from typing import Literal
 import altair as alt
 import fitparse
 import folium
 import gpxpy
+import json
+import os
 import pandas as pd
-from typing import Literal
+
 
 NAMESPACES = {
     'ns3': 'http://www.garmin.com/xmlschemas/TrackPointExtension/v1'
@@ -547,3 +550,15 @@ def aggregate_by_time(df: pd.DataFrame, timestamp_col: str, interval: str = '5mi
     aggregated_df     = df.resample(interval).apply(lambda x: x.quantile(0.99)).reset_index()
         
     return aggregated_df
+
+# Profile Helpers
+def load_data(data_file):
+    if os.path.exists(data_file):
+        with open(data_file, "r") as file:
+            data = json.load(file)
+            return pd.json_normalize(data)
+    return pd.DataFrame()  # Return an empty DataFrame if no data exists
+
+def save_data(data, data_file):
+    with open(data_file, "w") as file:
+        json.dump(data, file, indent=4)

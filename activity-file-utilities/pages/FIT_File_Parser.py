@@ -30,34 +30,38 @@ if uploaded_file is not None:
         col1, col2, col3, col4, col5 = st.columns([1,1,1,1,4], vertical_alignment='top', gap='small')
         with col1:
             st.subheader("Time")
-            st.metric(label='Coasting 🕰️',     value=summary['time_coasting'].iloc[0])
-            st.metric(label='Stopped 🕰️',      value=summary['time_stopped'].iloc[0])
-            st.metric(label='Working 🕰️',      value=summary['time_working'].iloc[0])
-            st.metric(label='Total 🕰️',        value=summary['time_total'].iloc[0])
-            st.divider()
+            st.metric(label='Coasting 🕰️',  value=summary['time_coasting'].iloc[0])
+            st.metric(label='Stopped 🕰️',   value=summary['time_stopped'].iloc[0])
+            st.metric(label='Working 🕰️',   value=summary['time_working'].iloc[0])
+            st.metric(label='Total 🕰️',     value=summary['time_total'].iloc[0])
             
-            st.subheader("Temps")
-            st.metric(label='Avg ℃ 🌡️',    value=summary['temp_avg'])
-            st.metric(label='Max ℃ 🌡️',    value=summary['temp_max'])
+            if summary['temp_avg'].iloc[0] != 0:
+                st.divider()
+                st.subheader("Temps")
+                st.metric(label='Avg ℃ 🌡️', value=summary['temp_avg'])
+                st.metric(label='Max ℃ 🌡️', value=summary['temp_max'])
             
         with col2:
             st.subheader("Power")
-            st.metric(label='Avg W ⚡',     value=summary['power_avg'])
-            st.metric(label='Max W ⚡',     value=summary['power_max'])
+            st.metric(label='Avg W ⚡', value=summary['power_avg'])
+            st.metric(label='Max W ⚡', value=summary['power_max'])
             st.divider()
             
             st.subheader("Intensity")
-            st.metric(label='NP® W ⚡',     value=summary['power_normalized'])
-            st.metric(label='IF®',          value=summary['intensity_factor'])
-            st.metric(label='TSS®',         value=summary['tss'])
+            st.metric(label='NP® W ⚡', value=summary['power_normalized'])
+            st.metric(label='IF®',      value=summary['intensity_factor'])
+            st.metric(label='TSS®',     value=summary['tss'])
         
         with col3:
             st.subheader("Power Avgs")
             st.metric(label='Max W 30s ⚡', value=summary['power_max_avg_30s'])
             st.metric(label='Max W 5m ⚡',  value=summary['power_max_avg_5m'])
-            # st.metric(label='Max W 10m ⚡', value=summary['power_max_avg_10m'])
-            st.metric(label='Max W 20m ⚡', value=summary['power_max_avg_20m'])
-            st.metric(label='Max W 60m ⚡', value=summary['power_max_avg_60m'])
+            if summary['power_max_avg_10m'].iloc[0] != 0:
+                st.metric(label='Max W 10m ⚡', value=summary['power_max_avg_10m'])
+            if summary['power_max_avg_20m'].iloc[0] != 0:
+                st.metric(label='Max W 20m ⚡', value=summary['power_max_avg_20m'])
+            if summary['power_max_avg_60m'].iloc[0] != 0:
+                st.metric(label='Max W 60m ⚡', value=summary['power_max_avg_60m'])
             st.divider()
             
             st.subheader("Speed")
