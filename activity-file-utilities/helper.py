@@ -573,3 +573,27 @@ def get_latest_ftp(data_file):
             return 0
     else:
         return 0
+    
+def get_ftp_by_date(data_file, target_date):
+    df = load_data(data_file)
+    if not df.empty and "ftp" in df.columns and "timestamp" in df.columns:
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        target_date     = pd.to_datetime(target_date)
+        df['date_diff'] = (df['timestamp'] - target_date).abs()
+        closest_row     = df.loc[df['date_diff'].idxmin()]
+        
+        ftp = closest_row['ftp']
+        return int(ftp) if pd.notna(ftp) else 0
+    else:
+        return 0
+
+def get_latest_maxhr(data_file):
+    df = load_data(data_file)
+    if not df.empty and "max_hr" in df.columns:
+        max_hr = df["max_hr"].iloc[-1]
+        if pd.notna(max_hr):
+            return int(max_hr)
+        else:
+            return 0
+    else:
+        return 0

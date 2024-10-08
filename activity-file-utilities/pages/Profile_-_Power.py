@@ -1,5 +1,4 @@
 import streamlit as st
-import json
 import pandas as pd
 from datetime import datetime
 import helper as h
@@ -12,29 +11,29 @@ power_df = h.load_data(POWER_FILE)
 ftp      = h.get_latest_ftp(PROFILE_FILE)
 
 st.title("Power Zones Manager")
-st.write(f"Current FTP: {ftp} Watts")
+st.info(f"Current FTP: {ftp} Watts")
 
-# Preload pct values if they exist
-zone_pcts = {f"zone.{i}": 0 for i in range(1, 8)}  # Initialize default zone percentages
+zone_pcts = {f"zone.{i}": 0 for i in range(1, 8)}
 if not power_df.empty:
-    latest_power_data = power_df.iloc[-1]  # Get the latest saved data
+    latest_power_data = power_df.iloc[-1]
     for zone in range(1, 8):
         zone_key = f"zone.{zone}"
         zone_pcts[zone_key] = latest_power_data[f"{zone_key}.pct"]
 
 if ftp > 0:
     timestamp = datetime.now().isoformat()
-    power_data = {"timestamp": timestamp}  # Change this to a dictionary for better structure
+    power_data = {"timestamp": timestamp}
 
     col1, col2 = st.columns(2)
     with col1:
-        st.subheader("Power Zones (%)")
-        zone_1 = st.number_input("Zone 1 (Recovery)",   min_value=0,            max_value=200, step=1, value=zone_pcts["zone.1"])
-        zone_2 = st.number_input("Zone 2 (Endurance)",  min_value=zone_1 + 1,   max_value=200, step=1, value=zone_pcts["zone.2"])
-        zone_3 = st.number_input("Zone 3 (Tempo)",      min_value=zone_2 + 1,   max_value=200, step=1, value=zone_pcts["zone.3"])
-        zone_4 = st.number_input("Zone 4 (Threshold)",  min_value=zone_3 + 1,   max_value=200, step=1, value=zone_pcts["zone.4"])
-        zone_5 = st.number_input("Zone 5 (VO2 Max)",    min_value=zone_4 + 1,   max_value=200, step=1, value=zone_pcts["zone.5"])
-        zone_6 = st.number_input("Zone 6 (Anaerobic)",  min_value=zone_5 + 1,   max_value=200, step=1, value=zone_pcts["zone.6"])
+        st.subheader("Power Zones")
+        st.write("Expressed as a % of FTP")
+        zone_1 = st.number_input("ZONE 1 | RECOVERY",   min_value=0,            max_value=200, step=1, value=zone_pcts["zone.1"])
+        zone_2 = st.number_input("ZONE 2 | ENDURANCE",  min_value=zone_1 + 1,   max_value=200, step=1, value=zone_pcts["zone.2"])
+        zone_3 = st.number_input("ZONE 3 | TEMPO",      min_value=zone_2 + 1,   max_value=200, step=1, value=zone_pcts["zone.3"])
+        zone_4 = st.number_input("ZONE 4 | THRESHOLD",  min_value=zone_3 + 1,   max_value=200, step=1, value=zone_pcts["zone.4"])
+        zone_5 = st.number_input("ZONE 5 | VO2 MAX",    min_value=zone_4 + 1,   max_value=200, step=1, value=zone_pcts["zone.5"])
+        zone_6 = st.number_input("ZONE 6 | ANAEROBIC",  min_value=zone_5 + 1,   max_value=200, step=1, value=zone_pcts["zone.6"])
 
     with col2:
         power_data["zone.1"] = {"pct": zone_1,      "low_pwr": 0,                                   "max_pwr": int(ftp * (zone_1 / 100))}
@@ -47,13 +46,20 @@ if ftp > 0:
 
         st.subheader("Power Bands (Watts)")
         st.divider()
-        st.write(f"**Zone 1**: 0 - {int(ftp * (zone_1 / 100))} watts ({int(ftp * (zone_1 / 100))})")
-        st.write(f"**Zone 2**: {power_data['zone.2']['low_pwr']} - {int(ftp * (zone_2 / 100))}  ({-power_data['zone.2']['low_pwr'] + int(ftp * (zone_2 / 100))})")
-        st.write(f"**Zone 3**: {power_data['zone.3']['low_pwr']} - {int(ftp * (zone_3 / 100))}  ({-power_data['zone.3']['low_pwr'] + int(ftp * (zone_3 / 100))})")
-        st.write(f"**Zone 4**: {power_data['zone.4']['low_pwr']} - {int(ftp * (zone_4 / 100))}  ({-power_data['zone.4']['low_pwr'] + int(ftp * (zone_4 / 100))})")
-        st.write(f"**Zone 5**: {power_data['zone.5']['low_pwr']} - {int(ftp * (zone_5 / 100))}  ({-power_data['zone.5']['low_pwr'] + int(ftp * (zone_5 / 100))})")
-        st.write(f"**Zone 6**: {power_data['zone.6']['low_pwr']} - {int(ftp * (zone_6 / 100))}  ({-power_data['zone.6']['low_pwr'] + int(ftp * (zone_6 / 100))})")
-        st.write(f"**Zone 7**: {power_data['zone.7']['low_pwr']} - Unlimited")
+        # Zone 1 / Recovery
+        st.success(f"**Zone 1**: 0 - {int(ftp * (zone_1 / 100))} ({int(ftp * (zone_1 / 100))} W)")
+        # Zone 2 / Endurance
+        st.success(f"**Zone 2**: {power_data['zone.2']['low_pwr']} - {int(ftp * (zone_2 / 100))}  ({-power_data['zone.2']['low_pwr'] + int(ftp * (zone_2 / 100))} W)")
+        # Zone 3 / Tempo
+        st.info(f"**Zone 3**: {power_data['zone.3']['low_pwr']} - {int(ftp * (zone_3 / 100))}  ({-power_data['zone.3']['low_pwr'] + int(ftp * (zone_3 / 100))} W)")
+        # Zone 4 / Threshold
+        st.warning(f"**Zone 4**: {power_data['zone.4']['low_pwr']} - {int(ftp * (zone_4 / 100))}  ({-power_data['zone.4']['low_pwr'] + int(ftp * (zone_4 / 100))} W)")
+        # Zone 5 / VO2 Max
+        st.warning(f"**Zone 5**: {power_data['zone.5']['low_pwr']} - {int(ftp * (zone_5 / 100))}  ({-power_data['zone.5']['low_pwr'] + int(ftp * (zone_5 / 100))} W)")
+        # Zone 6 / Anaerobic
+        st.error(f"**Zone 6**: {power_data['zone.6']['low_pwr']} - {int(ftp * (zone_6 / 100))}  ({-power_data['zone.6']['low_pwr'] + int(ftp * (zone_6 / 100))} W)")
+        # Zone 7 / Maximal
+        st.error(f"**Zone 7**: {power_data['zone.7']['low_pwr']} - Unlimited")
         st.divider()
 
     if st.button("Save Power Zones"):
