@@ -2,43 +2,14 @@ import streamlit as st
 import json
 import pandas as pd
 from datetime import datetime
-import os
+import helper as h
 
-POWER_FILE = "power_profile.json"
+
+POWER_FILE   = "power_profile.json"
 PROFILE_FILE = "basic_profile.json"
 
-def load_data(file_path):
-    if os.path.exists(file_path):
-        with open(file_path, "r") as file:
-            data = json.load(file)
-            if data:
-                return pd.json_normalize(data)
-            else:
-                st.error("The profile file is empty.")
-                return pd.DataFrame()
-    else:
-        st.error(f"File {file_path} not found.")
-        return pd.DataFrame()
-
-def save_data(data, file_name):
-    with open(file_name, "w") as file:
-        json.dump(data, file, indent=4)
-
-def get_latest_ftp():
-    df = load_data(PROFILE_FILE)
-    if not df.empty and "ftp" in df.columns:
-        ftp = df["ftp"].iloc[-1]
-        if pd.notna(ftp):
-            return int(ftp)
-        else:
-            st.warning("No valid FTP value found in the profile. Please update your profile.")
-            return 0
-    else:
-        st.warning("FTP value not found in profile data.")
-        return 0
-
-power_df = load_data(POWER_FILE)
-ftp = get_latest_ftp()
+power_df = h.load_data(POWER_FILE)
+ftp      = h.get_latest_ftp(PROFILE_FILE)
 
 st.title("Power Zones Manager")
 st.write(f"Current FTP: {ftp} Watts")
@@ -76,13 +47,13 @@ if ftp > 0:
 
         st.subheader("Power Bands (Watts)")
         st.divider()
-        st.write(f"**Zone 1**: 0 - {int(ftp * (zone_1 / 100))} Watts")
-        st.write(f"**Zone 2**: {power_data['zone.2']['low_pwr']} - {int(ftp * (zone_2 / 100))} Watts")
-        st.write(f"**Zone 3**: {power_data['zone.3']['low_pwr']} - {int(ftp * (zone_3 / 100))} Watts")
-        st.write(f"**Zone 4**: {power_data['zone.4']['low_pwr']} - {int(ftp * (zone_4 / 100))} Watts")
-        st.write(f"**Zone 5**: {power_data['zone.5']['low_pwr']} - {int(ftp * (zone_5 / 100))} Watts")
-        st.write(f"**Zone 6**: {power_data['zone.6']['low_pwr']} - {int(ftp * (zone_6 / 100))} Watts")
-        st.write(f"**Zone 7**: {power_data['zone.7']['low_pwr']} - Unlimited Watts")
+        st.write(f"**Zone 1**: 0 - {int(ftp * (zone_1 / 100))} watts ({int(ftp * (zone_1 / 100))})")
+        st.write(f"**Zone 2**: {power_data['zone.2']['low_pwr']} - {int(ftp * (zone_2 / 100))}  ({-power_data['zone.2']['low_pwr'] + int(ftp * (zone_2 / 100))})")
+        st.write(f"**Zone 3**: {power_data['zone.3']['low_pwr']} - {int(ftp * (zone_3 / 100))}  ({-power_data['zone.3']['low_pwr'] + int(ftp * (zone_3 / 100))})")
+        st.write(f"**Zone 4**: {power_data['zone.4']['low_pwr']} - {int(ftp * (zone_4 / 100))}  ({-power_data['zone.4']['low_pwr'] + int(ftp * (zone_4 / 100))})")
+        st.write(f"**Zone 5**: {power_data['zone.5']['low_pwr']} - {int(ftp * (zone_5 / 100))}  ({-power_data['zone.5']['low_pwr'] + int(ftp * (zone_5 / 100))})")
+        st.write(f"**Zone 6**: {power_data['zone.6']['low_pwr']} - {int(ftp * (zone_6 / 100))}  ({-power_data['zone.6']['low_pwr'] + int(ftp * (zone_6 / 100))})")
+        st.write(f"**Zone 7**: {power_data['zone.7']['low_pwr']} - Unlimited")
         st.divider()
 
     if st.button("Save Power Zones"):
@@ -102,7 +73,7 @@ if ftp > 0:
             else:
                 power_df = new_power_data_df
 
-            save_data(power_df.to_dict(orient="records"), POWER_FILE)
+            h.save_data(power_df.to_dict(orient="records"), POWER_FILE)
             st.success("Power zones saved successfully!")
         else:
             st.warning("No power data to save.")

@@ -562,3 +562,14 @@ def load_data(data_file):
 def save_data(data, data_file):
     with open(data_file, "w") as file:
         json.dump(data, file, indent=4)
+        
+def get_latest_ftp(data_file):
+    df = load_data(data_file)
+    if not df.empty and "ftp" in df.columns:
+        ftp = df["ftp"].iloc[-1]
+        if pd.notna(ftp):
+            return int(ftp)
+        else:
+            return 0
+    else:
+        return 0
