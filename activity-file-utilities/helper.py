@@ -264,7 +264,6 @@ def plot_map(df):
 def get_summary(df: pd.DataFrame, ftp: float, format: Literal["gpx", "fit"]) -> pd.DataFrame:
     if "heart_rate" in df:
         heart_rate_avg = round(df[df["heart_rate"] != 0]["heart_rate"].mean(skipna=True))
-        # heart_rate_max = round(df["heart_rate"].quantile(q=0.99, interpolation="linear"))
         heart_rate_max = round(df["heart_rate"].max())
     else:
         heart_rate_avg = heart_rate_max = None
@@ -276,7 +275,6 @@ def get_summary(df: pd.DataFrame, ftp: float, format: Literal["gpx", "fit"]) -> 
         
     if "power" in df:
         power_avg        = round(df[df["power"] != 0]["power"].mean(skipna=True))
-        # power_max        = round(df["power"].quantile(q=0.99, interpolation="linear"))
         power_max        = round(df["power"].max())
         power_np         = get_normalized_power(df)
         intensity_factor = get_intensity_factor(power_np, ftp)
@@ -291,26 +289,21 @@ def get_summary(df: pd.DataFrame, ftp: float, format: Literal["gpx", "fit"]) -> 
 
     if "cadence" in df:
         cadence_avg = round(df["cadence"].mean(skipna=True))
-        # cadence_max = round(df["cadence"].quantile(q=0.99, interpolation="linear"))
         cadence_max = round(df["cadence"].max())
     else:
         cadence_avg = cadence_max = 0
 
     if "enhanced_speed" in df:
         speed_avg = round(df["enhanced_speed"].mean(skipna=True) * 3.6)
-        # speed_max = round(df["enhanced_speed"].quantile(q=0.99, interpolation="linear") * 3.6)
         speed_max = round(df["enhanced_speed"].max() * 3.6)
     elif "speed" in df:
-        # For now, GPX files appear to contain `speed` expressed in mph; converting it to kmh
         speed_avg = round(df["speed"].mean(skipna=True) * 1.609)
-        # speed_max = round(df["speed"].quantile(q=0.99, interpolation="linear") * 1.609)
         speed_max = round(df["speed"].max() * 1.609)
     else:
         speed_avg = speed_max = 0
 
     if "temperature" in df:
         temperature_avg = round(df["temperature"].mean(skipna=True))
-        # temperature_max = round(df["temperature"].quantile(q=0.99, interpolation="linear"))
         temperature_max = round(df["temperature"].max())
     else:
         temperature_avg = temperature_max = 0
@@ -321,45 +314,61 @@ def get_summary(df: pd.DataFrame, ftp: float, format: Literal["gpx", "fit"]) -> 
         distance_km = round(df["distance"].max())
         
     if 'timestamp' in df:
-        coasting_time = get_coasting(df, time_column='timestamp')
-        stopped_time  = get_stopped_time(df, time_column='timestamp')
-        work_time     = get_work_time(df, time_column='timestamp')
-        total_time    = get_total_time(df, time_column='timestamp')
+        coasting_time_string  = get_coasting(df, time_column='timestamp')[0]
+        coasting_time_seconds = get_coasting(df, time_column='timestamp')[1]
+        stopped_time_string   = get_stopped_time(df, time_column='timestamp')[0]
+        stopped_time_seconds  = get_stopped_time(df, time_column='timestamp')[1]
+        work_time_string      = get_work_time(df, time_column='timestamp')[0]
+        work_time_seconds     = get_work_time(df, time_column='timestamp')[1]
+        total_time_string     = get_total_time(df, time_column='timestamp')[0]
+        total_time_seconds    = get_total_time(df, time_column='timestamp')[1]
     elif 'time' in df:
-        coasting_time = get_coasting(df, time_column='time')
-        stopped_time  = get_stopped_time(df, time_column='time')
-        work_time     = get_work_time(df, time_column='time')
-        total_time    = get_total_time(df, time_column='time')
+        coasting_time_string  = get_coasting(df, time_column='time')[0]
+        coasting_time_seconds = get_coasting(df, time_column='time')[1]
+        stopped_time_string   = get_stopped_time(df, time_column='time')[0]
+        stopped_time_seconds  = get_stopped_time(df, time_column='time')[1]
+        work_time_string      = get_work_time(df, time_column='time')[0]
+        work_time_seconds     = get_work_time(df, time_column='time')[1]
+        total_time_string     = get_total_time(df, time_column='time')[0]
+        total_time_seconds    = get_total_time(df, time_column='time')[1]
     else:
-        coasting_time = '0m'
-        stopped_time  = '0m'
-        work_time     = '0m'
-        total_time    = '0m'
+        coasting_time_string  = '0m'
+        coasting_time_seconds = 0
+        stopped_time_string   = '0m'
+        stopped_time_seconds  = 0
+        work_time_string      = '0m'
+        work_time_seconds     = 0
+        total_time_string     = '0m'
+        total_time_seconds    = 0
     
     df0 = pd.DataFrame({
-        'hr_avg':               [heart_rate_avg],
-        'hr_max':               [heart_rate_max],
-        'power_avg':            [power_avg],
-        'power_max':            [power_max],
-        'power_max_avg_30s':    [power_30s],
-        'power_max_avg_5m':     [power_5],
-        'power_max_avg_10m':    [power_10],
-        'power_max_avg_20m':    [power_20],
-        'power_max_avg_60m':    [power_60],
-        'power_normalized':     [power_np],
-        'intensity_factor':     [intensity_factor],
-        'tss':                  [tss],
-        'cadence_avg':          [cadence_avg],
-        'cadence_max':          [cadence_max],
-        'speed_avg':            [speed_avg],
-        'speed_max':            [speed_max],
-        'temp_avg':             [temperature_avg],
-        'temp_max':             [temperature_max],
-        'distance_total':       [distance_km],
-        'time_coasting':        [coasting_time],
-        'time_stopped':         [stopped_time],
-        'time_working':         [work_time],
-        'time_total':           [total_time],
+        'hr_avg':                [heart_rate_avg],
+        'hr_max':                [heart_rate_max],
+        'power_avg':             [power_avg],
+        'power_max':             [power_max],
+        'power_max_avg_30s':     [power_30s],
+        'power_max_avg_5m':      [power_5],
+        'power_max_avg_10m':     [power_10],
+        'power_max_avg_20m':     [power_20],
+        'power_max_avg_60m':     [power_60],
+        'power_normalized':      [power_np],
+        'intensity_factor':      [intensity_factor],
+        'tss':                   [tss],
+        'cadence_avg':           [cadence_avg],
+        'cadence_max':           [cadence_max],
+        'speed_avg':             [speed_avg],
+        'speed_max':             [speed_max],
+        'temp_avg':              [temperature_avg],
+        'temp_max':              [temperature_max],
+        'distance_total':        [distance_km],
+        'time_coasting_string':  [coasting_time_string],
+        'time_stopped_string':   [stopped_time_string],
+        'time_working_string':   [work_time_string],
+        'time_total_string':     [total_time_string],
+        'time_coasting_seconds': [coasting_time_seconds],
+        'time_stopped_seconds':  [stopped_time_seconds],
+        'time_working_seconds':  [work_time_seconds],
+        'time_total_seconds':    [total_time_seconds],
     })
     
     return df0
@@ -441,7 +450,7 @@ def get_max_avg_pwr(df: pd.DataFrame, minutes: float, time_column: str = 'timest
                 max_avg_power = avg_power
     return round(max_avg_power)
 
-def get_coasting(df: pd.DataFrame, time_column: str = 'timestamp') -> str:
+def get_coasting(df: pd.DataFrame, time_column: str = 'timestamp'):
     if 'power' not in df or 'cadence' not in df or ('speed' not in df and 'enhanced_speed' not in df) or time_column not in df:
         raise ValueError(f"The DataFrame must contain 'power', 'cadence', 'speed', and '{time_column}' columns")
     
@@ -465,9 +474,9 @@ def get_coasting(df: pd.DataFrame, time_column: str = 'timestamp') -> str:
     hours, remainder   = divmod(total_seconds, 3600)
     minutes, seconds   = divmod(remainder, 60)
 
-    return f"{hours}h {minutes}m {seconds}s"
+    return f"{hours}h {minutes}m {seconds}s", total_seconds
 
-def get_stopped_time(df: pd.DataFrame, time_column: str = 'timestamp') -> str:
+def get_stopped_time(df: pd.DataFrame, time_column: str = 'timestamp'):
     if ('speed' not in df and 'enhanced_speed' not in df) or time_column not in df:
         raise ValueError(f"The DataFrame must contain 'speed' or 'enhanced_speed', and '{time_column}' columns")
     
@@ -491,9 +500,9 @@ def get_stopped_time(df: pd.DataFrame, time_column: str = 'timestamp') -> str:
     hours, remainder         = divmod(total_seconds, 3600)
     minutes, seconds         = divmod(remainder, 60)
 
-    return f"{hours}h {minutes}m {seconds}s"
+    return f"{hours}h {minutes}m {seconds}s", total_seconds
 
-def get_work_time(df: pd.DataFrame, time_column: str = 'timestamp') -> str:
+def get_work_time(df: pd.DataFrame, time_column: str = 'timestamp'):
     if 'power' not in df or 'cadence' not in df or time_column not in df:
         raise ValueError(f"The DataFrame must contain 'power', 'cadence', and '{time_column}' columns")
     
@@ -513,9 +522,9 @@ def get_work_time(df: pd.DataFrame, time_column: str = 'timestamp') -> str:
     hours, remainder     = divmod(total_seconds, 3600)
     minutes, seconds     = divmod(remainder, 60)
 
-    return f"{hours}h {minutes}m {seconds}s"
+    return f"{hours}h {minutes}m {seconds}s", total_seconds
 
-def get_total_time(df: pd.DataFrame, time_column: str = 'timestamp') -> str:
+def get_total_time(df: pd.DataFrame, time_column: str = 'timestamp'):
     if time_column not in df:
         raise ValueError(f"The DataFrame must contain the '{time_column}' column")
     
@@ -532,7 +541,7 @@ def get_total_time(df: pd.DataFrame, time_column: str = 'timestamp') -> str:
     hours, remainder   = divmod(total_seconds, 3600)
     minutes, seconds   = divmod(remainder, 60)
 
-    return f"{hours}h {minutes}m {seconds}s"
+    return f"{hours}h {minutes}m {seconds}s", total_seconds
 
 def get_chart_data(df: pd.DataFrame, y_col: str, x_col: str) -> pd.DataFrame:
     if not all(col in df.columns for col in [y_col, x_col]):
@@ -552,12 +561,12 @@ def aggregate_by_time(df: pd.DataFrame, timestamp_col: str, interval: str = '5mi
     return aggregated_df
 
 # Profile Helpers
-def load_data(data_file):
+def load_data(data_file) -> pd.DataFrame:
     if os.path.exists(data_file):
         with open(data_file, "r") as file:
             data = json.load(file)
             return pd.json_normalize(data)
-    return pd.DataFrame()  # Return an empty DataFrame if no data exists
+    return pd.DataFrame()
 
 def save_data(data, data_file):
     with open(data_file, "w") as file:
@@ -597,3 +606,103 @@ def get_latest_maxhr(data_file):
             return 0
     else:
         return 0
+    
+def get_latest_restinghr(data_file):
+    df = load_data(data_file)
+    if not df.empty and "resting_hr" in df.columns:
+        resting_hr = df["resting_hr"].iloc[-1]
+        if pd.notna(resting_hr):
+            return int(resting_hr)
+        else:
+            return 0
+    else:
+        return 0
+
+def get_latest_hr_zones(df: pd.DataFrame):
+    df['timestamp'] = pd.to_datetime(df['timestamp'])
+    latest_row      = df.loc[df['timestamp'].idxmax()]
+    
+    return latest_row
+
+def calculate_training_effect(heart_rate_zones_df: pd.DataFrame, intensity: float):
+    # Define aerobic and anaerobic factors for each zone (scaled up)
+    zone_factors = {
+        "zone1": {"aerobic": 0.350, "anaerobic": 0.010},   # Low intensity, mostly recovery
+        "zone2": {"aerobic": 0.400, "anaerobic": 0.020},   # Endurance
+        "zone3": {"aerobic": 0.350, "anaerobic": 0.300},   # Steady-state cardio
+        "zone4": {"aerobic": 0.100, "anaerobic": 0.900},   # Threshold/tempo
+        "zone5": {"aerobic": 0.000, "anaerobic": 1.600},   # High intensity (sprints)
+    }
+    
+    aerobic_te    = 0
+    anaerobic_te  = 0
+    duration_mins = 0
+    
+    for index, row in heart_rate_zones_df.iterrows():
+        zone = row['zone']
+        time_in_zone_seconds = row['time_in_seconds']
+
+        try:
+            time_in_zone_minutes = float(time_in_zone_seconds) / 60
+
+        except Exception as e:
+            print(f"Error in converting time_in_zone_seconds for {zone}: {e}")
+            continue
+
+        if zone in zone_factors:
+            aerobic_te    += time_in_zone_minutes * zone_factors[zone]["aerobic"]
+            anaerobic_te  += time_in_zone_minutes * zone_factors[zone]["anaerobic"]
+            duration_mins += time_in_zone_minutes
+
+    # Scale by intensity factor and cap at maximum 5
+    if duration_mins <= 60:
+        h = 60
+        i = intensity * 10
+    elif duration_mins > 60 and duration_mins <= 120:
+        h = 90
+        i = intensity * 15
+    elif duration_mins > 120 and duration_mins <= 240:
+        h = 180
+        i = intensity * 12
+    elif duration_mins > 240:
+        h = 210
+        i = intensity * 18
+
+    aerobic_te   = min(5, aerobic_te   * i / h)
+    anaerobic_te = min(5, anaerobic_te * i / h)
+    return round(aerobic_te, 1), round(anaerobic_te, 1)
+
+def calculate_hr_zone_time(df: pd.DataFrame, hr_zones: pd.DataFrame) -> pd.DataFrame:
+    df['timestamp'] = pd.to_datetime(df['timestamp'])
+    df['time_diff'] = df['timestamp'].diff().dt.total_seconds().fillna(0)
+    
+    zone_numbers  = list(set([int(row.split('.')[1]) for row in hr_zones.index if 'zone.' in row]))
+    num_zones     = len(zone_numbers)
+    time_in_zones = {f'zone{i+1}': 0 for i in range(num_zones)}
+
+    for i in range(1, len(df)):
+        heart_rate    = df.iloc[i]['heart_rate']
+        time_interval = df.iloc[i]['time_diff']
+
+        for zone_num in zone_numbers:
+            low_hr_row = f'zone.{zone_num}.low_hr'
+            max_hr_row = f'zone.{zone_num}.max_hr'
+
+            if low_hr_row in hr_zones.index and max_hr_row in hr_zones.index:
+                min_hr = hr_zones.loc[low_hr_row]
+                max_hr = hr_zones.loc[max_hr_row]
+
+                if min_hr <= heart_rate <= max_hr:
+                    time_in_zones[f'zone{zone_num}'] += time_interval
+                    break
+
+    time_in_zones_df = pd.DataFrame({
+        'zone': list(time_in_zones.keys()),
+        'time_in_seconds': list(time_in_zones.values())
+    })
+
+    return time_in_zones_df
+
+
+
+

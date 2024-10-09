@@ -4,6 +4,14 @@ import streamlit as st
 import helper as h
 
 
+PROFILE_FILE        = "basic_profile.json"
+HR_FILE             = 'hr_profile.json'
+FTP                 = h.get_latest_ftp(PROFILE_FILE)
+MAX_HR              = h.get_latest_maxhr(PROFILE_FILE)
+RESTING_HR          = h.get_latest_restinghr(PROFILE_FILE)
+HR_ZONES            = h.load_data(HR_FILE)
+LATEST_HR_ZONES     = h.get_latest_hr_zones(HR_ZONES)
+
 st.set_page_config(
     page_title="FIT/GPX File Utilities",
     layout="wide",
@@ -11,17 +19,39 @@ st.set_page_config(
 )
 
 st.title("FIT/GPX File Utilities")
-ftp           = st.number_input("Functional Threshold Power (FTP): ", 200)
+
+display_activity_df = st.checkbox("Display data tables", value=None)
+
+col1, col2, col3 = st.columns([1,1,1])
+with col1:
+    try:
+        st.success(f"FTP Setting: {FTP}W")
+    except Exception as e:
+        st.error(f"Could not find a valid FTP value: {e}")
+with col2:
+    try:
+        st.success(f"Max Heart Rate Setting: {MAX_HR}bpm")
+    except Exception as e:
+        st.error(f"Could not find a valid Max HR value: {e}")
+with col3:
+    try:
+        st.success(f"Resting Heart Rate Setting: {RESTING_HR}bpm")
+    except Exception as e:
+        st.error(f"Could not find a valid Resting HR value: {e}")
+
 uploaded_file = st.file_uploader("Choose a FIT/GPX file", type=["fit", "gpx"])
 
 if uploaded_file is not None:
     try:
         if uploaded_file.type == "application/fits":
-            activity = h.parse_fit_file(uploaded_file)
-            summary  = h.get_summary(activity, ftp, format="fit")
+            activity        = h.parse_fit_file(uploaded_file)
+            summary         = h.get_summary(activity, FTP, format="fit")
+            hr_zone_time    = h.calculate_hr_zone_time(activity, LATEST_HR_ZONES)
+            activity_te     = h.calculate_training_effect(hr_zone_time, float(summary['intensity_factor'].iloc[0]))
+            
         elif uploaded_file.type == "application/gpx+xml":
             activity = h.gpx_to_dataframe(uploaded_file)
-            summary  = h.get_summary(activity, ftp, format="gpx")
+            summary  = h.get_summary(activity, FTP, format="gpx")
         
     except Exception as e:
         st.error(e)
@@ -30,10 +60,10 @@ if uploaded_file is not None:
         col1, col2, col3, col4, col5 = st.columns([1,1,1,1,4], vertical_alignment='top', gap='small')
         with col1:
             st.subheader("Time")
-            st.metric(label='Coasting 🕰️',  value=summary['time_coasting'].iloc[0])
-            st.metric(label='Stopped 🕰️',   value=summary['time_stopped'].iloc[0])
-            st.metric(label='Working 🕰️',   value=summary['time_working'].iloc[0])
-            st.metric(label='Total 🕰️',     value=summary['time_total'].iloc[0])
+            st.metric(label='Coasting 🕰️',  value=summary['time_coasting_string'].iloc[0])
+            st.metric(label='Stopped 🕰️',   value=summary['time_stopped_string'].iloc[0])
+            st.metric(label='Working 🕰️',   value=summary['time_working_string'].iloc[0])
+            st.metric(label='Total 🕰️',     value=summary['time_total_string'].iloc[0])
             
             if summary['temp_avg'].iloc[0] != 0:
                 st.divider()
@@ -78,6 +108,11 @@ if uploaded_file is not None:
             st.subheader("Heart Rate")
             st.metric(label='Avg BPM ❤️',   value=summary['hr_avg'])
             st.metric(label='Max BPM ❤️',   value=summary['hr_max'])
+            st.divider()
+
+            st.subheader("Training Effect")
+            st.metric(label='Aerobic TE',    value=activity_te[0])
+            st.metric(label='Anaerobic TE',  value=activity_te[1])
             
         with col5:
             st.subheader("Map")
@@ -86,8 +121,14 @@ if uploaded_file is not None:
                 st_folium(route_map, use_container_width=True, key="map", returned_objects=[])
             else:
                 st.write("No latitude/longitude data available in this FIT file.")
+                
     except Exception as e:
         st.error(e)
 
+    if display_activity_df:
+        st.dataframe(activity)
+        st.dataframe(summary)
+        st.dataframe(hr_zone_time)
+        
 else:
     st.info("Please upload a FIT or GPX file to inspect.")
