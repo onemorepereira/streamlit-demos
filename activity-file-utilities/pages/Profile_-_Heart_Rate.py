@@ -6,8 +6,9 @@ import helper as h
 HR_FILE      = "hr_profile.json"
 PROFILE_FILE = "basic_profile.json"
 
-hr_df  = h.load_data(HR_FILE)
-max_hr = h.get_latest_maxhr(PROFILE_FILE)
+hr_df   = h.load_data(HR_FILE)
+max_hr  = h.get_latest_maxhr(PROFILE_FILE)
+rest_hr = h.get_latest_restinghr(PROFILE_FILE)
 
 st.title("Heart Rate Zones Manager")
 st.info(f"Current Max HR: {max_hr} BPM")
@@ -36,24 +37,24 @@ if max_hr > 0:
 
 
     with col2:
-        hr_data["zone.1"] = {"pct": zone_1,      "low_hr": 0,                                 "max_hr": int(max_hr * (zone_1 / 100))}
+        hr_data["zone.1"] = {"pct": zone_1,      "low_hr": int(rest_hr * 1.75),               "max_hr": int(max_hr * (zone_1 / 100))}
         hr_data["zone.2"] = {"pct": zone_2,      "low_hr": hr_data["zone.1"]["max_hr"] + 1,   "max_hr": int(max_hr * (zone_2 / 100))}
         hr_data["zone.3"] = {"pct": zone_3,      "low_hr": hr_data["zone.2"]["max_hr"] + 1,   "max_hr": int(max_hr * (zone_3 / 100))}
         hr_data["zone.4"] = {"pct": zone_4,      "low_hr": hr_data["zone.3"]["max_hr"] + 1,   "max_hr": int(max_hr * (zone_4 / 100))}
-        hr_data["zone.5"] = {"pct": zone_5,      "low_hr": hr_data["zone.4"]["max_hr"] + 1,   "max_hr": int(max_hr)}
+        hr_data["zone.5"] = {"pct": zone_5,      "low_hr": hr_data["zone.4"]["max_hr"] + 1,   "max_hr": int(max_hr * 1.05)}
 
         st.subheader("Heart Rate Bands (BPM)")
         st.divider()
         # Zone 1 / Warm Up
-        st.success(f"**Zone 1**: 0 - {hr_data['zone.1']['max_hr']} ({hr_data['zone.1']['max_hr']} BPM)")
+        st.success(f"**Zone 1**: {hr_data['zone.1']['low_hr']} - {hr_data['zone.1']['max_hr']} ({hr_data['zone.1']['max_hr']} BPM)")
         # Zone 2 / Easy
         st.success(f"**Zone 2**: {hr_data['zone.2']['low_hr']} - {hr_data['zone.2']['max_hr']} ({hr_data['zone.2']['max_hr'] - hr_data['zone.2']['low_hr']} BPM)")
         # Zone 3 / Aerobic
-        st.info(f"**Zone 3**: {hr_data['zone.3']['low_hr']} - {hr_data['zone.3']['max_hr']} ({hr_data['zone.3']['max_hr'] - hr_data['zone.3']['low_hr']} BPM)")
+        st.info(f"**Zone 3**:    {hr_data['zone.3']['low_hr']} - {hr_data['zone.3']['max_hr']} ({hr_data['zone.3']['max_hr'] - hr_data['zone.3']['low_hr']} BPM)")
         # Zone 4 / Threshold
         st.warning(f"**Zone 4**: {hr_data['zone.4']['low_hr']} - {hr_data['zone.4']['max_hr']} ({hr_data['zone.4']['max_hr'] - hr_data['zone.4']['low_hr']} BPM)")
         # Zone 5 / Maximum
-        st.error(f"**Zone 5**: {hr_data['zone.5']['low_hr']} - {hr_data['zone.5']['max_hr']} BPM")
+        st.error(f"**Zone 5**:   {hr_data['zone.5']['low_hr']} - {hr_data['zone.5']['max_hr']} BPM")
 
     if st.button("Save Heart Rate Zones"):
         if hr_data:
