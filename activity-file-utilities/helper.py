@@ -731,3 +731,27 @@ def format_nice_date(timestamp: datetime.timestamp):
     formatted_date = dt.strftime(f"%A, %B {day}{suffix} %Y @ %I:%M%p")
     return formatted_date.lstrip("0")
 
+def convert(value: float, from_to: Literal['miles_km',
+                                           'km_miles',
+                                           'mph_kmh',
+                                           'kmh_mph',
+                                           'cm_inches',
+                                           'inches_cm',
+                                           'celsius_fahrenheit',
+                                           'fahrenheit_celsius']) -> float:
+    conversion_factors = {
+        'miles_km':  1.60934,     # 1 mile = 1.60934 km
+        'km_miles':  1 / 1.60934, # 1 km = 0.621371 miles
+        'mph_kmh':   1.60934,     # 1 mph = 1.60934 km/h
+        'kmh_mph':   1 / 1.60934, # 1 km/h = 0.621371 mph
+        'cm_inches': 0.393701,    # 1 cm = 0.393701 inches
+        'inches_cm': 2.54         # 1 inch = 2.54 cm
+    }
+
+    # Temperature    
+    if from_to == 'celsius_fahrenheit':
+        return round((value * 9/5) + 32, 2)  # Celsius to Fahrenheit
+    elif from_to == 'fahrenheit_celsius':
+        return round((value - 32) * 5/9, 2)  # Fahrenheit to Celsius
+
+    return round(value * conversion_factors[from_to], 1)

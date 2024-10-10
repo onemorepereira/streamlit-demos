@@ -21,6 +21,7 @@ st.set_page_config(
 st.title("FIT/GPX File Utilities")
 
 display_activity_df = st.checkbox("Display data tables", value=None)
+metric              = st.checkbox("Metric Units", value=False)
 
 col1, col2, col3 = st.columns([1,1,1])
 with col1:
@@ -78,8 +79,12 @@ if uploaded_file is not None:
             if summary['temp_avg'].iloc[0] != 0:
                 st.divider()
                 st.subheader("Temps")
-                st.metric(label='Avg ℃ 🌡️', value=summary['temp_avg'])
-                st.metric(label='Max ℃ 🌡️', value=summary['temp_max'])
+                if metric:
+                    st.metric(label='Avg ℃ 🌡️', value=summary['temp_avg'])
+                    st.metric(label='Max ℃ 🌡️', value=summary['temp_max'])
+                else:
+                    st.metric(label='Avg ℉ 🌡️', value=h.convert(summary['temp_avg'], from_to='celsius_fahrenheit'))
+                    st.metric(label='Max ℉ 🌡️', value=h.convert(summary['temp_max'], from_to='celsius_fahrenheit'))
             
         with col2:
             st.subheader("Power")
@@ -105,9 +110,14 @@ if uploaded_file is not None:
             st.divider()
             
             st.subheader("Speed")
-            st.metric(label='Avg kmh 🚴',   value=summary['speed_avg'])
-            st.metric(label='Max kmh 🚴',   value=summary['speed_max'])
-            st.metric(label='Dist km 📏',   value=summary['distance_total'])
+            if metric:
+                st.metric(label='Avg kmh 🚴', value=summary['speed_avg'])
+                st.metric(label='Max kmh 🚴', value=summary['speed_max'])
+                st.metric(label='Dist km 📏', value=summary['distance_total'])
+            else:
+                st.metric(label='Avg mph 🚴',    value=h.convert(summary['speed_avg'], from_to='kmh_mph'))
+                st.metric(label='Max mph 🚴',    value=h.convert(summary['speed_max'], from_to='kmh_mph'))
+                st.metric(label='Dist miles 📏', value=h.convert(summary['distance_total'], from_to='km_miles'))
             
         with col4:
             st.subheader("Cadence")
