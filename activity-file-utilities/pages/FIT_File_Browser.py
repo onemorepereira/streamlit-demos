@@ -56,7 +56,11 @@ if directory:
                 try:
                     if selected_file.endswith(".fit"):
                         with open(file_path, "rb") as uploaded_file:
-                            activity        = h.parse_fit_file(uploaded_file)
+                            parsed_fit      = h.parse_fit_file(uploaded_file)
+                            activity        = parsed_fit[0]
+                            event_data      = parsed_fit[1]
+                            event_time      = parsed_fit[1]['timestamp'].iloc[0] if parsed_fit[1]['timestamp'].iloc[0] else None
+                            sport           = parsed_fit[2]['sport'].iloc[-1]
                             summary         = h.get_summary(activity, FTP, format="fit")
                             hr_zone_time    = h.calculate_hr_zone_time(activity, LATEST_HR_ZONES)
                             activity_te     = h.calculate_training_effect(hr_zone_time, float(summary['intensity_factor'].iloc[0]))
@@ -73,6 +77,12 @@ if directory:
     except Exception as e:
         st.error(f"An error occurred while accessing the directory: {e}")
 
+    col1, col2 = st.columns([1,1])
+    with col1:
+        st.info(f"**Activity: {str.title(sport)}**")
+    with col2:
+        st.info(f"**Date: {h.format_nice_date(event_time)}**")
+        
     try:
         col1, col2, col3, col4, col5 = st.columns([1,1,1,1,4], vertical_alignment='top', gap='small')
         with col1:
@@ -148,6 +158,5 @@ if directory:
         st.dataframe(activity)
         st.dataframe(summary)
         st.dataframe(hr_zone_time)
-
 else:
     st.info("Please upload a FIT or GPX file to inspect.")

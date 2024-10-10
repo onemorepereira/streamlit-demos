@@ -1,3 +1,4 @@
+from datetime import datetime
 from geopy.distance import geodesic
 from math import radians, sin, cos, sqrt, atan2
 from typing import Literal
@@ -195,16 +196,33 @@ def create_chart(source_df1: str, source_df2: str, agg_df1: pd.DataFrame, agg_df
     
 def parse_fit_file(fit_file) -> pd.DataFrame:
     fitfile = fitparse.FitFile(fit_file)
-    data = []
+    rdata   = []
+    edata   = []
+    sdata   = []
 
     for record in fitfile.get_messages("record"):
         record_data = {}
         for data_field in record:
             record_data[data_field.name] = data_field.value
-        data.append(record_data)
+        rdata.append(record_data)
+        
+    for event in fitfile.get_messages("event"):
+        event_data = {}
+        for data_field in event:
+            event_data[data_field.name] = data_field.value
+        edata.append(event_data)
+        
+    for session in fitfile.get_messages("session"):
+        session_data = {}
+        for data_field in session:
+            session_data[data_field.name] = data_field.value
+        sdata.append(session_data)
 
-    df = pd.DataFrame(data)
-    return df
+    record_df   = pd.DataFrame(rdata)
+    event_df    = pd.DataFrame(edata)
+    session_df  = pd.DataFrame(sdata)
+    
+    return record_df, event_df, session_df
 
 def plot_map(df):
     if "position_lat" in df.columns and "position_long" in df.columns:
@@ -703,6 +721,13 @@ def calculate_hr_zone_time(df: pd.DataFrame, hr_zones: pd.DataFrame) -> pd.DataF
 
     return time_in_zones_df
 
-
-
+def format_nice_date(timestamp: datetime.timestamp):
+    dt  = timestamp.to_pydatetime()
+    day = dt.day
+    if 4 <= day <= 20 or 24 <= day <= 30:
+        suffix = "th"
+    else:
+        suffix = ["st", "nd", "rd"][day % 10 - 1]
+    formatted_date = dt.strftime(f"%A, %B {day}{suffix} %I:%M%p")
+    return formatted_date.lstrip("0")
 

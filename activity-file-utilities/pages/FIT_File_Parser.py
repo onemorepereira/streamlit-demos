@@ -44,7 +44,11 @@ uploaded_file = st.file_uploader("Choose a FIT/GPX file", type=["fit", "gpx"])
 if uploaded_file is not None:
     try:
         if uploaded_file.type == "application/fits":
-            activity        = h.parse_fit_file(uploaded_file)
+            parsed_fit      = h.parse_fit_file(uploaded_file)
+            activity        = parsed_fit[0]
+            event_data      = parsed_fit[1]
+            event_time      = parsed_fit[1]['timestamp'].iloc[0] if parsed_fit[1]['timestamp'].iloc[0] else None
+            sport           = parsed_fit[2]['sport'].iloc[-1]
             summary         = h.get_summary(activity, FTP, format="fit")
             hr_zone_time    = h.calculate_hr_zone_time(activity, LATEST_HR_ZONES)
             activity_te     = h.calculate_training_effect(hr_zone_time, float(summary['intensity_factor'].iloc[0]))
@@ -56,6 +60,12 @@ if uploaded_file is not None:
     except Exception as e:
         st.error(e)
 
+    col1, col2 = st.columns([1,1])
+    with col1:
+        st.info(f"**Activity: {str.title(sport)}**")
+    with col2:
+        st.info(f"**Date: {h.format_nice_date(event_time)}**")
+        
     try:
         col1, col2, col3, col4, col5 = st.columns([1,1,1,1,4], vertical_alignment='top', gap='small')
         with col1:
