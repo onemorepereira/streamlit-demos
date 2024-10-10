@@ -728,6 +728,6 @@ def format_nice_date(timestamp: datetime.timestamp):
         suffix = "th"
     else:
         suffix = ["st", "nd", "rd"][day % 10 - 1]
-    formatted_date = dt.strftime(f"%A, %B {day}{suffix} %I:%M%p")
+    formatted_date = dt.strftime(f"%A, %B {day}{suffix} %Y @ %I:%M%p")
     return formatted_date.lstrip("0")
 
