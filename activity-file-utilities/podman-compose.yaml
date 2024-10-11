@@ -4,5 +4,7 @@ services:
   gpxviz:
     image: localhost/gpxviz:latest
     container_name: gpxviz
+    volumes:
+      - ./userdata.persist:/app/userdata:Z
     ports:
       - "8503:8501"
