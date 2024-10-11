@@ -7,7 +7,7 @@ st.set_page_config(
     page_icon="🗺️"
 )
 
-st.title("Activity File Parsers")
+st.title("Activity File Analysis")
 
 st.write("""
          Simple collection of tools and utilities to parse, inspect, and compare different activity tracker file formats.

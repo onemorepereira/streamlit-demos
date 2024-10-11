@@ -1,6 +1,6 @@
-import streamlit as st
-import pandas as pd
 import json
+import pandas as pd
+import streamlit as st
 
 # Title of the application
 st.title("JSON to DataFrame Viewer")

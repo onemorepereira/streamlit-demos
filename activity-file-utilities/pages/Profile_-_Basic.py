@@ -1,13 +1,14 @@
 from datetime import datetime
-import helper as h
+from src.core import UserProfile
+import src.utils as h
 import streamlit as st
 
 
-DATA_FILE = "basic_profile.json"
+profile = UserProfile()
 
 st.title("Profile Manager")
 
-profiles_df     = h.load_data(DATA_FILE)
+profiles_df     = h.load_data(profile.PROFILE_FILE)
 latest_profile  = profiles_df.iloc[-1] if not profiles_df.empty else None
 unit_system     = st.radio("Choose unit system:", ("Imperial (lbs, inches)", "Metric (kg, cm)"))
 
@@ -60,13 +61,13 @@ if st.button("Save Entry"):
         "weight_lbs":   round(weight_lbs, 2) if weight_lbs % 1 else int(weight_lbs),
     }
 
-    data = h.load_data(DATA_FILE).to_dict(orient="records")
+    data = h.load_data(profile.PROFILE_FILE).to_dict(orient="records")
     data.append(entry)
-    h.save_data(data, DATA_FILE)
+    h.save_data(data, profile.PROFILE_FILE)
     st.success("Profile saved successfully!")
 
 st.header("Saved Profiles")
-data = h.load_data(DATA_FILE)
+data = h.load_data(profile.PROFILE_FILE)
 if not data.empty:
     st.dataframe(data)
 else:

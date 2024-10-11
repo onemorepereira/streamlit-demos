@@ -1,7 +1,7 @@
 from datetime import datetime
 from geopy.distance import geodesic
-from geopy.geocoders import OpenCage
 from geopy.exc import GeocoderTimedOut
+from geopy.geocoders import OpenCage
 from math import radians, sin, cos, sqrt, atan2
 from typing import Literal
 import altair as alt
@@ -324,8 +324,11 @@ def get_summary(df: pd.DataFrame, ftp: float, format: Literal["gpx", "fit"]) -> 
         speed_avg = speed_max = 0
 
     if "temperature" in df:
-        temperature_avg = round(df["temperature"].mean(skipna=True))
-        temperature_max = round(df["temperature"].max())
+        try:
+            temperature_avg = round(df["temperature"].mean(skipna=True))
+            temperature_max = round(df["temperature"].max(skipna=True))
+        except Exception:
+            temperature_avg = temperature_max = 0
     else:
         temperature_avg = temperature_max = 0
 
@@ -586,8 +589,9 @@ def load_data(data_file) -> pd.DataFrame:
     if os.path.exists(data_file):
         with open(data_file, "r") as file:
             data = json.load(file)
-            return pd.json_normalize(data)
-    return pd.DataFrame()
+            return pd.DataFrame(data)
+    else:
+        return pd.DataFrame()
 
 def save_data(data, data_file):
     with open(data_file, "w") as file:
@@ -639,7 +643,7 @@ def get_latest_restinghr(data_file):
     else:
         return 0
 
-def get_latest_hr_zones(df: pd.DataFrame):
+def get_latest_hr_zones(df: pd.DataFrame) -> pd.DataFrame:
     df['timestamp'] = pd.to_datetime(df['timestamp'])
     latest_row      = df.loc[df['timestamp'].idxmax()]
     

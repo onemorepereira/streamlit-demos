@@ -1,0 +1,16 @@
+[
+    {
+        "dob": "1980-01-01",
+        "sex": "Male",
+        "ftp": 213,
+        "max_hr": 178,
+        "resting_hr": 64,
+        "weight_lbs": 182,
+        "weight_kg": 82.55,
+        "height_ft": 6,
+        "height_in": 1,
+        "height_cm": 185.42,
+        "timestamp": "2024-10-08T11:40:05.434047",
+        "opencage_key": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+    }
+]

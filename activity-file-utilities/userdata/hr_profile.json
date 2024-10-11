@@ -1,0 +1,20 @@
+[
+    {
+        "timestamp": "2024-10-11T17:16:45.834723",
+        "zone.1.pct": 73,
+        "zone.1.low_hr": 112,
+        "zone.1.max_hr": 129,
+        "zone.2.pct": 80,
+        "zone.2.low_hr": 130,
+        "zone.2.max_hr": 142,
+        "zone.3.pct": 86,
+        "zone.3.low_hr": 143,
+        "zone.3.max_hr": 153,
+        "zone.4.pct": 93,
+        "zone.4.low_hr": 154,
+        "zone.4.max_hr": 165,
+        "zone.5.pct": 100,
+        "zone.5.low_hr": 166,
+        "zone.5.max_hr": 186
+    }
+]

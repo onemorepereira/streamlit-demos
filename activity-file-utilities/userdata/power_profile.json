@@ -1,0 +1,26 @@
+[
+    {
+        "timestamp": "2024-10-11T14:01:56.931010",
+        "zone.1.pct": 58,
+        "zone.1.low_pwr": 0,
+        "zone.1.max_pwr": 123,
+        "zone.2.pct": 77,
+        "zone.2.low_pwr": 124,
+        "zone.2.max_pwr": 164,
+        "zone.3.pct": 92,
+        "zone.3.low_pwr": 165,
+        "zone.3.max_pwr": 195,
+        "zone.4.pct": 109,
+        "zone.4.low_pwr": 196,
+        "zone.4.max_pwr": 232,
+        "zone.5.pct": 125,
+        "zone.5.low_pwr": 233,
+        "zone.5.max_pwr": 266,
+        "zone.6.pct": 159,
+        "zone.6.low_pwr": 267,
+        "zone.6.max_pwr": 338,
+        "zone.7.pct": 160,
+        "zone.7.low_pwr": 339,
+        "zone.7.max_pwr": 9999
+    }
+]

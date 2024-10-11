@@ -1,19 +1,11 @@
-
+from src.core import UserProfile
 from streamlit_folium import st_folium
-import streamlit as st
-import helper as h
 import os
+import src.utils as h
+import streamlit as st
 
 
-PROFILE_FILE        = "basic_profile.json"
-HR_FILE             = 'hr_profile.json'
-FTP                 = h.get_latest_ftp(PROFILE_FILE)
-MAX_HR              = h.get_latest_maxhr(PROFILE_FILE)
-RESTING_HR          = h.get_latest_restinghr(PROFILE_FILE)
-HR_ZONES            = h.load_data(HR_FILE)
-LATEST_HR_ZONES     = h.get_latest_hr_zones(HR_ZONES)
-API_KEY             = h.get_opencage_key(PROFILE_FILE)
-
+profile = UserProfile()
 st.set_page_config(
     page_title="FIT/GPX File Browser",
     layout="wide",
@@ -22,23 +14,23 @@ st.set_page_config(
 
 st.title("FIT/GPX File Browser")
 
-display_activity_df = st.checkbox("Display data tables", value=None)
-metric              = st.checkbox("Metric Units", value=False)
+display_tables = st.checkbox("Display data tables", value=None)
+metric_display = st.checkbox("Metric Units", value=False)
 
 col1, col2, col3 = st.columns([1,1,1])
 with col1:
     try:
-        st.success(f"FTP Setting: {FTP}W")
+        st.success(f"FTP Setting: {profile.get_ftp()}W")
     except Exception as e:
         st.error(f"Could not find a valid FTP value: {e}")
 with col2:
     try:
-        st.success(f"Max Heart Rate Setting: {MAX_HR}bpm")
+        st.success(f"Max Heart Rate Setting: {profile.get_max_hr()}bpm")
     except Exception as e:
         st.error(f"Could not find a valid Max HR value: {e}")
 with col3:
     try:
-        st.success(f"Resting Heart Rate Setting: {RESTING_HR}bpm")
+        st.success(f"Resting Heart Rate Setting: {profile.get_resting_hr()}bpm")
     except Exception as e:
         st.error(f"Could not find a valid Resting HR value: {e}")
     
@@ -63,9 +55,16 @@ if directory:
                             event_data      = parsed_fit[1]
                             event_time      = parsed_fit[1]['timestamp'].iloc[0] if parsed_fit[1]['timestamp'].iloc[0] else None
                             sport           = parsed_fit[2]['sport'].iloc[-1]
-                            summary         = h.get_summary(activity, FTP, format="fit")
+                            summary         = h.get_summary(activity,
+                                                            profile.get_ftp(),
+                                                            format="fit"
+                                                            )
                             try:
-                                starting_loc    = h.get_location_details(api_key=API_KEY, latitude=activity['position_lat'].iloc[0]*(180 / 2**31), longitude=activity['position_long'].iloc[0]* (180 / 2**31))
+                                starting_loc = h.get_location_details(api_key=profile.get_api_key(),
+                                                                      latitude=activity['position_lat'].iloc[0]*(180 / 2**31),
+                                                                      longitude=activity['position_long'].iloc[0]* (180 / 2**31)
+                                                                      )
+                                
                                 starting_city   = starting_loc['city']
                                 starting_state  = starting_loc['state']
                                 starting_zip    = starting_loc['postal_code']
@@ -75,13 +74,13 @@ if directory:
                                 starting_state  = None
                                 starting_zip    = None
                                 starting_ctry   = None
-                            hr_zone_time    = h.calculate_hr_zone_time(activity, LATEST_HR_ZONES)
+                            hr_zone_time    = h.calculate_hr_zone_time(activity, profile.get_hr_zones())
                             activity_te     = h.calculate_training_effect(hr_zone_time, float(summary['intensity_factor'].iloc[0]))
                     
                     elif selected_file.endswith(".gpx"):
                         with open(file_path, "rb") as uploaded_file:
                             activity = h.gpx_to_dataframe(uploaded_file)
-                            summary  = h.get_summary(activity, FTP, format="gpx")
+                            summary  = h.get_summary(activity, profile.get_ftp(), format="gpx")
                     
                 except Exception as e:
                     st.error(f"An error occurred while processing the file: {e}")
@@ -110,7 +109,7 @@ if directory:
             if summary['temp_avg'].iloc[0] != 0:
                 st.divider()
                 st.subheader("Temps")
-                if metric:
+                if metric_display:
                     st.metric(label='Avg ℃ 🌡️', value=summary['temp_avg'])
                     st.metric(label='Max ℃ 🌡️', value=summary['temp_max'])
                 else:
@@ -141,7 +140,7 @@ if directory:
             st.divider()
             
             st.subheader("Speed")
-            if metric:
+            if metric_display:
                 st.metric(label='Avg kmh 🚴', value=summary['speed_avg'])
                 st.metric(label='Max kmh 🚴', value=summary['speed_max'])
                 st.metric(label='Dist km 📏', value=summary['distance_total'])
@@ -178,9 +177,9 @@ if directory:
     except Exception as e:
         st.error(e)
 
-    if display_activity_df:
+    if display_tables:
         st.dataframe(activity)
-        st.dataframe(summary)
+        st.dataframe(summary.transpose())
         st.dataframe(hr_zone_time)
 else:
     st.info("Please upload a FIT or GPX file to inspect.")

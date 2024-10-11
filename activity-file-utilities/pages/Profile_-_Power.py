@@ -1,14 +1,14 @@
-import streamlit as st
-import pandas as pd
 from datetime import datetime
-import helper as h
+from src.core import UserProfile
+import pandas as pd
+import src.utils as h
+import streamlit as st
 
 
-POWER_FILE   = "power_profile.json"
-PROFILE_FILE = "basic_profile.json"
+profile = UserProfile()
 
-power_df = h.load_data(POWER_FILE)
-ftp      = h.get_latest_ftp(PROFILE_FILE)
+power_df = profile.get_all_power_zones()
+ftp      = profile.get_ftp()
 
 st.title("Power Zones Manager")
 st.info(f"Current FTP: {ftp} Watts")
@@ -79,7 +79,7 @@ if ftp > 0:
             else:
                 power_df = new_power_data_df
 
-            h.save_data(power_df.to_dict(orient="records"), POWER_FILE)
+            h.save_data(power_df.to_dict(orient="records"), profile.POWER_FILE)
             st.success("Power zones saved successfully!")
         else:
             st.warning("No power data to save.")
