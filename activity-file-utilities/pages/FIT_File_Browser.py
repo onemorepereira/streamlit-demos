@@ -12,6 +12,7 @@ MAX_HR              = h.get_latest_maxhr(PROFILE_FILE)
 RESTING_HR          = h.get_latest_restinghr(PROFILE_FILE)
 HR_ZONES            = h.load_data(HR_FILE)
 LATEST_HR_ZONES     = h.get_latest_hr_zones(HR_ZONES)
+API_KEY             = h.get_opencage_key(PROFILE_FILE)
 
 st.set_page_config(
     page_title="FIT/GPX File Browser",
@@ -63,6 +64,17 @@ if directory:
                             event_time      = parsed_fit[1]['timestamp'].iloc[0] if parsed_fit[1]['timestamp'].iloc[0] else None
                             sport           = parsed_fit[2]['sport'].iloc[-1]
                             summary         = h.get_summary(activity, FTP, format="fit")
+                            try:
+                                starting_loc    = h.get_location_details(api_key=API_KEY, latitude=activity['position_lat'].iloc[0]*(180 / 2**31), longitude=activity['position_long'].iloc[0]* (180 / 2**31))
+                                starting_city   = starting_loc['city']
+                                starting_state  = starting_loc['state']
+                                starting_zip    = starting_loc['postal_code']
+                                starting_ctry   = starting_loc['country']
+                            except Exception:
+                                starting_city   = None
+                                starting_state  = None
+                                starting_zip    = None
+                                starting_ctry   = None
                             hr_zone_time    = h.calculate_hr_zone_time(activity, LATEST_HR_ZONES)
                             activity_te     = h.calculate_training_effect(hr_zone_time, float(summary['intensity_factor'].iloc[0]))
                     
@@ -78,11 +90,13 @@ if directory:
     except Exception as e:
         st.error(f"An error occurred while accessing the directory: {e}")
 
-    col1, col2 = st.columns([1,1])
+    col1, col2, col3 = st.columns([1,1,1])
     with col1:
-        st.info(f"**Activity: {str.title(sport)}**")
+        st.info(f"Activity: **{str.title(sport)}**")
     with col2:
-        st.info(f"**Date: {h.format_nice_date(event_time)}**")
+        st.info(f"Date: **{h.format_nice_date(event_time)}**")
+    with col3:
+        st.info(f"Starting Location: **{starting_city}, {starting_state} ({starting_zip})  {starting_ctry}**")
         
     try:
         col1, col2, col3, col4, col5 = st.columns([1,1,1,1,4], vertical_alignment='top', gap='small')

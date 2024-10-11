@@ -1,5 +1,7 @@
 from datetime import datetime
 from geopy.distance import geodesic
+from geopy.geocoders import OpenCage
+from geopy.exc import GeocoderTimedOut
 from math import radians, sin, cos, sqrt, atan2
 from typing import Literal
 import altair as alt
@@ -224,7 +226,8 @@ def parse_fit_file(fit_file) -> pd.DataFrame:
     
     return record_df, event_df, session_df
 
-def plot_map(df):
+def plot_map(df: pd.DataFrame):
+    # NOTE: looks like Panda.DataFrame as shared in-memory objects; beware, this function is not "safe"
     if "position_lat" in df.columns and "position_long" in df.columns:
         # Convert semi-circles to degrees (standard for GPS lat/lon)
         df["latitude"]  = df["position_lat"] * (180 / 2**31)
@@ -755,3 +758,47 @@ def convert(value: float, from_to: Literal['miles_km',
         return round((value - 32) * 5/9, 2)  # Fahrenheit to Celsius
 
     return round(value * conversion_factors[from_to], 1)
+
+def get_location_details(api_key: str, latitude: float, longitude: float):
+    """
+    Returns city, state, country, and postal code based on latitude and longitude using OpenCage with geopy.
+
+    Args:
+    latitude (float): Latitude of the location.
+    longitude (float): Longitude of the location.
+    api_key (str): Your OpenCage API key.
+
+    Returns:
+    dict: A dictionary containing city, state, country, and postal code.
+    """
+    if api_key:
+        geolocator       = OpenCage(api_key)
+        location_details = {}
+        try:
+            location = geolocator.reverse((latitude, longitude), exactly_one=True)
+            if location:
+                address = location.raw.get('components', {})
+                location_details['city'] = address.get('city', address.get('town', address.get('village', '')))
+                location_details['state'] = address.get('state', '')
+                location_details['country'] = address.get('country', '')
+                location_details['postal_code'] = address.get('postcode', '')
+
+        except GeocoderTimedOut:
+            return {"error": "Geocoder service timed out."}
+        except Exception as e:
+            return {"error": str(e)}
+        
+        return location_details
+    else:
+        return None
+
+def get_opencage_key(data_file):
+    df = load_data(data_file)
+    if not df.empty and "opencage_key" in df.columns:
+        opencage_key = df["opencage_key"].iloc[-1]
+        if pd.notna(opencage_key):
+            return str(opencage_key)
+        else:
+            return None
+    else:
+        return None

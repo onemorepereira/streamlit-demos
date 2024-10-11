@@ -35,6 +35,8 @@ with col2:
         height_ft    = int(total_inches // 12)
         height_in    = int(total_inches % 12)
 
+    opencage_key = st.text_input("OpenCage API key", type="password", value=latest_profile['opencage_key'] if latest_profile is not None else '')
+
     st.success(f"Converted Weight: {round(weight_lbs, 2) if weight_lbs % 1 else int(weight_lbs)} lbs / {round(weight_kg, 2) if weight_kg % 1 else int(weight_kg)} kg")
     st.success(f"Converted Height: {height_ft} ft {height_in} in / {round(height_cm, 2) if height_cm % 1 else int(height_cm)} cm")
 
@@ -45,16 +47,17 @@ timestamp = datetime.now().isoformat()
 if st.button("Save Entry"):
     entry = {
         "dob":          str(dob),
-        "sex":          sex,
         "ftp":          int(ftp),
-        "max_hr":       int(max_hr),
-        "resting_hr":   int(resting_hr),
-        "weight_lbs":   round(weight_lbs, 2) if weight_lbs % 1 else int(weight_lbs),
-        "weight_kg":    round(weight_kg, 2) if weight_kg % 1 else int(weight_kg),
+        "height_cm":    round(float(height_cm), 2) if height_cm % 1 else int(height_cm),
         "height_ft":    int(height_ft),
         "height_in":    int(height_in),
-        "height_cm":    round(float(height_cm), 2) if height_cm % 1 else int(height_cm),
-        "timestamp":    timestamp
+        "max_hr":       int(max_hr),
+        "opencage_key": str(opencage_key),
+        "resting_hr":   int(resting_hr),
+        "sex":          sex,
+        "timestamp":    timestamp,
+        "weight_kg":    round(weight_kg, 2) if weight_kg % 1 else int(weight_kg),
+        "weight_lbs":   round(weight_lbs, 2) if weight_lbs % 1 else int(weight_lbs),
     }
 
     data = h.load_data(DATA_FILE).to_dict(orient="records")
