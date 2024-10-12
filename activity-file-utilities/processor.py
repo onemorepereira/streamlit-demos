@@ -97,6 +97,7 @@ for file in files:
             
             time_coasting = summary_df['time_coasting_seconds'].iloc[0]
             time_stopped  = summary_df['time_stopped_seconds'].iloc[0]
+            time_moving   = summary_df['time_moving_seconds'].iloc[0]
             time_working  = summary_df['time_working_seconds'].iloc[0]
             time_total    = summary_df['time_total_seconds'].iloc[0]
             
@@ -194,6 +195,7 @@ for file in files:
                 'activity_distance':        round(float(activity_distance), 2),
                 'time_coasting':            int(time_coasting),
                 'time_stopped':             int(time_stopped),
+                'time_moving':              int(time_moving),
                 'time_working':             int(time_working),
                 'time_total':               int(time_total),
                 'speed_average':            round(float(speed_average), 2),

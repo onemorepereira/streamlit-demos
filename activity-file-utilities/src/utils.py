@@ -342,6 +342,8 @@ def get_summary(df: pd.DataFrame, ftp: float, format: Literal["gpx", "fit"]) -> 
         coasting_time_seconds = get_coasting(df, time_column='timestamp')[1]
         stopped_time_string   = get_stopped_time(df, time_column='timestamp')[0]
         stopped_time_seconds  = get_stopped_time(df, time_column='timestamp')[1]
+        moving_time_string    = get_moving_time(df, time_column='timestamp')[0]
+        moving_time_seconds   = get_moving_time(df, time_column='timestamp')[1]
         work_time_string      = get_work_time(df, time_column='timestamp')[0]
         work_time_seconds     = get_work_time(df, time_column='timestamp')[1]
         total_time_string     = get_total_time(df, time_column='timestamp')[0]
@@ -351,6 +353,8 @@ def get_summary(df: pd.DataFrame, ftp: float, format: Literal["gpx", "fit"]) -> 
         coasting_time_seconds = get_coasting(df, time_column='time')[1]
         stopped_time_string   = get_stopped_time(df, time_column='time')[0]
         stopped_time_seconds  = get_stopped_time(df, time_column='time')[1]
+        moving_time_string    = get_moving_time(df, time_column='time')[0]
+        moving_time_seconds   = get_moving_time(df, time_column='time')[1]
         work_time_string      = get_work_time(df, time_column='time')[0]
         work_time_seconds     = get_work_time(df, time_column='time')[1]
         total_time_string     = get_total_time(df, time_column='time')[0]
@@ -360,6 +364,8 @@ def get_summary(df: pd.DataFrame, ftp: float, format: Literal["gpx", "fit"]) -> 
         coasting_time_seconds = 0
         stopped_time_string   = '0m'
         stopped_time_seconds  = 0
+        moving_time_string    = '0m'
+        moving_time_seconds   = 0
         work_time_string      = '0m'
         work_time_seconds     = 0
         total_time_string     = '0m'
@@ -387,10 +393,12 @@ def get_summary(df: pd.DataFrame, ftp: float, format: Literal["gpx", "fit"]) -> 
         'distance_total':        [distance_km],
         'time_coasting_string':  [coasting_time_string],
         'time_stopped_string':   [stopped_time_string],
+        'time_moving_string':    [moving_time_string],
         'time_working_string':   [work_time_string],
         'time_total_string':     [total_time_string],
         'time_coasting_seconds': [coasting_time_seconds],
         'time_stopped_seconds':  [stopped_time_seconds],
+        'time_moving_seconds':   [moving_time_seconds],
         'time_working_seconds':  [work_time_seconds],
         'time_total_seconds':    [total_time_seconds],
     })
@@ -521,6 +529,32 @@ def get_stopped_time(df: pd.DataFrame, time_column: str = 'timestamp'):
     
     total_stationary_seconds = stationary_time_df['time_diff'].sum()
     total_seconds            = int(total_stationary_seconds)
+    hours, remainder         = divmod(total_seconds, 3600)
+    minutes, seconds         = divmod(remainder, 60)
+
+    return f"{hours}h {minutes}m {seconds}s", total_seconds
+
+def get_moving_time(df: pd.DataFrame, time_column: str = 'timestamp'):
+    if ('speed' not in df and 'enhanced_speed' not in df) or time_column not in df:
+        raise ValueError(f"The DataFrame must contain 'speed' or 'enhanced_speed', and '{time_column}' columns")
+    
+    # Ensure the time column is in datetime format
+    if not pd.api.types.is_datetime64_any_dtype(df[time_column]):
+        df[time_column] = pd.to_datetime(df[time_column])
+    
+    df = df.sort_values(by=time_column).reset_index(drop=True)
+    
+    # Calculate the time difference between consecutive rows
+    df['time_diff'] = df[time_column].diff().dt.total_seconds().fillna(0)
+    
+    # Filter rows where speed or enhanced_speed is 0 (stationary time)
+    if 'speed' in df:
+        moving_time_df = df[df['speed'] > 1]
+    elif 'enhanced_speed' in df:
+        moving_time_df = df[df['enhanced_speed'] > 1]
+    
+    total_moving_seconds = moving_time_df['time_diff'].sum()
+    total_seconds            = int(total_moving_seconds)
     hours, remainder         = divmod(total_seconds, 3600)
     minutes, seconds         = divmod(remainder, 60)
 

@@ -104,6 +104,7 @@ if directory:
             st.subheader("Time")
             st.metric(label='Coasting 🕰️',  value=summary['time_coasting_string'].iloc[0])
             st.metric(label='Stopped 🕰️',   value=summary['time_stopped_string'].iloc[0])
+            st.metric(label='Moving 🕰️',    value=summary['time_moving_string'].iloc[0])
             st.metric(label='Working 🕰️',   value=summary['time_working_string'].iloc[0])
             st.metric(label='Total 🕰️',     value=summary['time_total_string'].iloc[0])
             
