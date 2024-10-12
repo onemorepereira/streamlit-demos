@@ -43,9 +43,10 @@ for file in files:
             activity_start_time = fit_events_df['timestamp'].iloc[0] if fit_events_df['timestamp'].iloc[0] else None
             activity_end_time   = fit_events_df['timestamp'].iloc[-1] if fit_events_df['timestamp'].iloc[0] else None
             
-            activity_distance = summary_df['distance_total'].iloc[0]
-            speed_average     = summary_df['speed_avg'].iloc[0]
-            speed_max         = summary_df['speed_max'].iloc[0]
+            activity_distance    = summary_df['distance_total'].iloc[0]
+            speed_average        = summary_df['speed_avg'].iloc[0]
+            speed_moving_average = summary_df['speed_moving_avg'].iloc[0]
+            speed_max            = summary_df['speed_max'].iloc[0]
             
             if 'indoor' not in activity_sub_type:
                 try:
@@ -199,6 +200,7 @@ for file in files:
                 'time_working':             int(time_working),
                 'time_total':               int(time_total),
                 'speed_average':            round(float(speed_average), 2),
+                'speed_moving_average':     round(float(speed_moving_average), 2),
                 'speed_max':                round(float(speed_max), 2),
                 'power_average':            round(float(power_average),2),
                 'power_max':                round(float(power_max),2),

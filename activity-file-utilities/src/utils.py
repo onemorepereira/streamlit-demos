@@ -315,13 +315,15 @@ def get_summary(df: pd.DataFrame, ftp: float, format: Literal["gpx", "fit"]) -> 
         cadence_avg = cadence_max = 0
 
     if "enhanced_speed" in df:
-        speed_avg = round(df["enhanced_speed"].mean(skipna=True) * 3.6)
-        speed_max = round(df["enhanced_speed"].max() * 3.6)
+        speed_avg        = round(df["enhanced_speed"].mean(skipna=True) * 3.6)
+        speed_moving_avg = round(df[df["enhanced_speed"] > 8]["enhanced_speed"].mean(skipna=True) * 3.6)
+        speed_max        = round(df["enhanced_speed"].max() * 3.6)
     elif "speed" in df:
-        speed_avg = round(df["speed"].mean(skipna=True) * 1.609)
-        speed_max = round(df["speed"].max() * 1.609)
+        speed_avg        = round(df["speed"].mean(skipna=True) * 1.609)
+        speed_moving_avg = round(df[df["speed"] > 8]["speed"].mean(skipna=True) * 1.609)
+        speed_max        = round(df["speed"].max() * 1.609)
     else:
-        speed_avg = speed_max = 0
+        speed_avg = speed_max = speed_moving_avg = 0
 
     if "temperature" in df:
         try:
@@ -387,6 +389,7 @@ def get_summary(df: pd.DataFrame, ftp: float, format: Literal["gpx", "fit"]) -> 
         'cadence_avg':           [cadence_avg],
         'cadence_max':           [cadence_max],
         'speed_avg':             [speed_avg],
+        'speed_moving_avg':      [speed_moving_avg],
         'speed_max':             [speed_max],
         'temp_avg':              [temperature_avg],
         'temp_max':              [temperature_max],
@@ -822,8 +825,10 @@ def get_location_details(api_key: str, latitude: float, longitude: float):
                 location_details['postal_code'] = address.get('postcode', '')
 
         except GeocoderTimedOut:
+            print("error: Geocoder service timed out.")
             return {"error": "Geocoder service timed out."}
         except Exception as e:
+            print(f"error: {e}")
             return {"error": str(e)}
         
         return location_details

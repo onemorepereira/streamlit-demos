@@ -143,13 +143,15 @@ if directory:
             
             st.subheader("Speed")
             if metric_display:
-                st.metric(label='Avg kmh 🚴', value=summary['speed_avg'])
-                st.metric(label='Max kmh 🚴', value=summary['speed_max'])
-                st.metric(label='Dist km 📏', value=summary['distance_total'])
+                st.metric(label='Avg kmh 🚴',        value=summary['speed_avg'])
+                st.metric(label='Avg moving kmh 🚴', value=summary['speed_moving_avg'])
+                st.metric(label='Max kmh 🚴',        value=summary['speed_max'])
+                st.metric(label='Dist km 📏',        value=summary['distance_total'])
             else:
-                st.metric(label='Avg mph 🚴',    value=h.convert(summary['speed_avg'], from_to='kmh_mph'))
-                st.metric(label='Max mph 🚴',    value=h.convert(summary['speed_max'], from_to='kmh_mph'))
-                st.metric(label='Dist miles 📏', value=h.convert(summary['distance_total'], from_to='km_miles'))
+                st.metric(label='Avg mph 🚴',        value=h.convert(summary['speed_avg'], from_to='kmh_mph'))
+                st.metric(label='Avg moving mph 🚴', value=h.convert(summary['speed_moving_avg'], from_to='kmh_mph'))
+                st.metric(label='Max mph 🚴',        value=h.convert(summary['speed_max'], from_to='kmh_mph'))
+                st.metric(label='Dist miles 📏',     value=h.convert(summary['distance_total'], from_to='km_miles'))
                 
         with col4:
             st.subheader("Cadence")
