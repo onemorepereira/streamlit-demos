@@ -65,6 +65,7 @@ if uploaded_file is not None:
             
             hr_zone_time    = h.calculate_hr_zone_time(activity, profile.get_hr_zones())
             activity_te     = h.calculate_training_effect(hr_zone_time, float(summary['intensity_factor'].iloc[0]))
+            power_zone_time = h.calculate_power_zone_time(activity, profile.get_power_zones())
             
         elif uploaded_file.type == "application/gpx+xml":
             activity = h.gpx_to_dataframe(uploaded_file)
@@ -160,9 +161,14 @@ if uploaded_file is not None:
         st.error(e)
 
     if display_tables:
+        st.subheader("Activity")
         st.dataframe(activity)
+        st.subheader("Basic Summary")
         st.dataframe(summary.transpose())
+        st.subheader("HR Zone Time")
         st.dataframe(hr_zone_time)
+        st.subheader("Power Zone Time")
+        st.dataframe(power_zone_time)
         
 else:
     st.info("Please upload a FIT or GPX file to inspect.")
