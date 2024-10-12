@@ -183,10 +183,15 @@ if directory:
         st.dataframe(activity)
         st.subheader("Basic Summary")
         st.dataframe(summary.transpose())
-        st.subheader("HR Zone Time")
-        st.dataframe(hr_zone_time)
-        st.subheader("Power Zone Time")
-        st.dataframe(power_zone_time)
+        col1, col2= st.columns([1, 1])
+        with col1:
+            st.subheader("HR Zone Time")
+            hrzt = h.get_chart_data(hr_zone_time, y_col='time_in_seconds', x_col='zone')
+            st.bar_chart(hrzt, )
+        with col2:
+            st.subheader("Power Zone Time")
+            pwrzt = h.get_chart_data(power_zone_time, y_col='time_in_seconds', x_col='zone')
+            st.bar_chart(pwrzt, )
         
 else:
     st.info("Please upload a FIT or GPX file to inspect.")
