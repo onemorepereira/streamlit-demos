@@ -5,6 +5,9 @@ import json
 import os
 import pandas as pd
 import src.utils as h
+import logging
+
+logging.basicConfig(format='%(asctime)s [%(levelname)s] [%(module)s.%(funcName)s] [%(threadName)s] - %(message)s', level=logging.INFO)
 
 def convert_timestamp_to_serializable(obj):
     if isinstance(obj, (datetime, pd.Timestamp)):
@@ -29,7 +32,7 @@ files       = os.listdir(root)
 
 for file in files:
     if file.endswith(ext_filter):
-        print(f"{root}/{file}")
+        logging.info(f"{root}/{file}")
         full_path = f"{root}/{file}"
         with open(full_path, 'rb') as fitfile:
             fitfile        = h.parse_fit_file(fitfile)
@@ -63,7 +66,7 @@ for file in files:
                     activity_start_country  = rgeo_start['country']
                     
                 except Exception as e:
-                    print(e)
+                    logging.error(e)
                     activity_start_city     = None
                     activity_start_state    = None
                     activity_start_zip      = None
@@ -83,7 +86,7 @@ for file in files:
                     activity_end_country  = rgeo_end['country']
                     
                 except Exception as e:
-                    print(e)
+                    logging.error(e)
                     activity_end_city     = None
                     activity_end_state    = None
                     activity_end_zip      = None

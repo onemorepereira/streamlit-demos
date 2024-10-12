@@ -1,8 +1,10 @@
 from datetime import datetime
+from functools import wraps
 from geopy.distance import geodesic
 from geopy.exc import GeocoderTimedOut
 from geopy.geocoders import OpenCage
 from math import radians, sin, cos, sqrt, atan2
+from time import time
 from typing import Literal
 import altair as alt
 import fitparse
@@ -11,12 +13,29 @@ import gpxpy
 import json
 import os
 import pandas as pd
+import logging
 
 
-NAMESPACES = {
-    'ns3': 'http://www.garmin.com/xmlschemas/TrackPointExtension/v1'
-}
+logging.basicConfig(format='%(asctime)s [%(levelname)s] [%(module)s.%(funcName)s] [%(threadName)s] - %(message)s', level=logging.INFO)
 
+def timing(f):
+    @wraps(f)
+    def wrap(*args, **kw):
+        ts = time()
+        result = f(*args, **kw)
+        te = time()
+        tt = te-ts
+        if tt > 1:
+            logging.info("""
+------------------------------------------
+Long running function detected.
+Function: {}\t{} secs
+------------------------------------------
+                         """.format(f.__name__, round(tt,2)))
+        return result
+    return wrap
+
+@timing
 def haversine(lat1, lon1, lat2, lon2):
     # Radius of Earth in kilometers
     R = 6371.0
@@ -36,7 +55,9 @@ def haversine(lat1, lon1, lat2, lon2):
     
     return distance
 
+@timing
 def gpx_to_dataframe(gpx_file) -> pd.DataFrame:
+    NAMESPACES = {'ns3': 'http://www.garmin.com/xmlschemas/TrackPointExtension/v1'}
     gpx  = gpxpy.parse(gpx_file)
     data = {
         'latitude': [],
@@ -120,6 +141,7 @@ def gpx_to_dataframe(gpx_file) -> pd.DataFrame:
     df = pd.DataFrame(data)
     return df
 
+@timing
 def aggregate_gpx_data(df: pd.DataFrame) -> pd.DataFrame:
     # Round the time column to the nearest minute
     df['time'] = df['time'].dt.round('min')
@@ -164,6 +186,7 @@ def aggregate_gpx_data(df: pd.DataFrame) -> pd.DataFrame:
     
     return grouped.reset_index()
 
+@timing
 def create_chart(source_df1: str, source_df2: str, agg_df1: pd.DataFrame, agg_df2: pd.DataFrame, y_column: str, title: str, y_label: str):
     # Add a source column for each DataFrame
     agg_df1['source'] = source_df1
@@ -195,7 +218,8 @@ def create_chart(source_df1: str, source_df2: str, agg_df1: pd.DataFrame, agg_df
         width=700,
         height=400
     ).interactive()
-    
+
+@timing    
 def parse_fit_file(fit_file) -> pd.DataFrame:
     fitfile = fitparse.FitFile(fit_file)
     rdata   = []
@@ -226,6 +250,7 @@ def parse_fit_file(fit_file) -> pd.DataFrame:
     
     return record_df, event_df, session_df
 
+@timing
 def plot_map(df: pd.DataFrame):
     # NOTE: looks like Panda.DataFrame as shared in-memory objects; beware, this function is not "safe"
     if "position_lat" in df.columns and "position_long" in df.columns:
@@ -282,6 +307,7 @@ def plot_map(df: pd.DataFrame):
 
     return m
 
+@timing
 def get_summary(df: pd.DataFrame, ftp: float, format: Literal["gpx", "fit"]) -> pd.DataFrame:
     if "heart_rate" in df:
         heart_rate_avg = round(df[df["heart_rate"] != 0]["heart_rate"].mean(skipna=True))
@@ -408,6 +434,7 @@ def get_summary(df: pd.DataFrame, ftp: float, format: Literal["gpx", "fit"]) -> 
     
     return df0
 
+@timing
 def get_normalized_power(df: pd.DataFrame) -> float:
     if "power" not in df:
         raise ValueError("The DataFrame does not contain a 'power' column")
@@ -429,6 +456,7 @@ def get_normalized_power(df: pd.DataFrame) -> float:
 
     return round(normalized_power)
 
+@timing
 def get_intensity_factor(normalized_power: float, ftp: float) -> float:
     if ftp <= 0:
         raise ValueError("FTP must be a positive number")
@@ -436,6 +464,7 @@ def get_intensity_factor(normalized_power: float, ftp: float) -> float:
     intensity_factor = normalized_power / ftp
     return round(intensity_factor, 3)
 
+@timing
 def get_tss(normalized_power: float, ftp: float, duration_seconds: float, intensity_factor: float) -> float:
     if ftp <= 0 or duration_seconds <= 0:
         raise ValueError("FTP and duration must be positive numbers")
@@ -443,6 +472,7 @@ def get_tss(normalized_power: float, ftp: float, duration_seconds: float, intens
     tss = (duration_seconds * normalized_power * intensity_factor) / (ftp * 3600) * 100
     return round(tss, 1)
 
+@timing
 def get_duration_seconds(df: pd.DataFrame, column: str = 'timestamp') -> float:
     if column not in df.columns:
         raise ValueError(f"Column '{column}' not found in the DataFrame")
@@ -458,6 +488,7 @@ def get_duration_seconds(df: pd.DataFrame, column: str = 'timestamp') -> float:
 
     return elapsed_seconds
 
+@timing
 def get_max_avg_pwr(df: pd.DataFrame, minutes: float, time_column: str = 'timestamp') -> float:
     if 'power' not in df or time_column not in df:
         raise ValueError(f"The DataFrame must contain 'power' and '{time_column}' columns")
@@ -485,6 +516,7 @@ def get_max_avg_pwr(df: pd.DataFrame, minutes: float, time_column: str = 'timest
                 max_avg_power = avg_power
     return round(max_avg_power)
 
+@timing
 def get_coasting(df: pd.DataFrame, time_column: str = 'timestamp'):
     if 'power' not in df or 'cadence' not in df or ('speed' not in df and 'enhanced_speed' not in df) or time_column not in df:
         raise ValueError(f"The DataFrame must contain 'power', 'cadence', 'speed', and '{time_column}' columns")
@@ -511,6 +543,7 @@ def get_coasting(df: pd.DataFrame, time_column: str = 'timestamp'):
 
     return f"{hours}h {minutes}m {seconds}s", total_seconds
 
+@timing
 def get_stopped_time(df: pd.DataFrame, time_column: str = 'timestamp'):
     if ('speed' not in df and 'enhanced_speed' not in df) or time_column not in df:
         raise ValueError(f"The DataFrame must contain 'speed' or 'enhanced_speed', and '{time_column}' columns")
@@ -537,6 +570,7 @@ def get_stopped_time(df: pd.DataFrame, time_column: str = 'timestamp'):
 
     return f"{hours}h {minutes}m {seconds}s", total_seconds
 
+@timing
 def get_moving_time(df: pd.DataFrame, time_column: str = 'timestamp'):
     if ('speed' not in df and 'enhanced_speed' not in df) or time_column not in df:
         raise ValueError(f"The DataFrame must contain 'speed' or 'enhanced_speed', and '{time_column}' columns")
@@ -563,6 +597,7 @@ def get_moving_time(df: pd.DataFrame, time_column: str = 'timestamp'):
 
     return f"{hours}h {minutes}m {seconds}s", total_seconds
 
+@timing
 def get_work_time(df: pd.DataFrame, time_column: str = 'timestamp'):
     if 'power' not in df or 'cadence' not in df or time_column not in df:
         raise ValueError(f"The DataFrame must contain 'power', 'cadence', and '{time_column}' columns")
@@ -585,6 +620,7 @@ def get_work_time(df: pd.DataFrame, time_column: str = 'timestamp'):
 
     return f"{hours}h {minutes}m {seconds}s", total_seconds
 
+@timing
 def get_total_time(df: pd.DataFrame, time_column: str = 'timestamp'):
     if time_column not in df:
         raise ValueError(f"The DataFrame must contain the '{time_column}' column")
@@ -604,6 +640,7 @@ def get_total_time(df: pd.DataFrame, time_column: str = 'timestamp'):
 
     return f"{hours}h {minutes}m {seconds}s", total_seconds
 
+@timing
 def get_chart_data(df: pd.DataFrame, y_col: str, x_col: str) -> pd.DataFrame:
     if not all(col in df.columns for col in [y_col, x_col]):
         raise ValueError("One or more specified columns do not exist in the DataFrame.")
@@ -611,6 +648,7 @@ def get_chart_data(df: pd.DataFrame, y_col: str, x_col: str) -> pd.DataFrame:
     chart_data.set_index(x_col, inplace=True)
     return chart_data
 
+@timing
 def aggregate_by_time(df: pd.DataFrame, timestamp_col: str, interval: str = '5min') -> pd.DataFrame:
     if timestamp_col not in df.columns:
         raise ValueError(f"Column '{timestamp_col}' does not exist in the DataFrame.")
@@ -621,7 +659,8 @@ def aggregate_by_time(df: pd.DataFrame, timestamp_col: str, interval: str = '5mi
         
     return aggregated_df
 
-# Profile Helpers
+
+@timing# Profile Helpers
 def load_data(data_file) -> pd.DataFrame:
     if os.path.exists(data_file):
         with open(data_file, "r") as file:
@@ -630,10 +669,12 @@ def load_data(data_file) -> pd.DataFrame:
     else:
         return pd.DataFrame()
 
+@timing
 def save_data(data, data_file):
     with open(data_file, "w") as file:
         json.dump(data, file, indent=4)
-        
+
+@timing        
 def get_latest_ftp(data_file):
     df = load_data(data_file)
     if not df.empty and "ftp" in df.columns:
@@ -644,7 +685,8 @@ def get_latest_ftp(data_file):
             return 0
     else:
         return 0
-    
+
+@timing    
 def get_ftp_by_date(data_file, target_date):
     df = load_data(data_file)
     if not df.empty and "ftp" in df.columns and "timestamp" in df.columns:
@@ -658,6 +700,7 @@ def get_ftp_by_date(data_file, target_date):
     else:
         return 0
 
+@timing
 def get_latest_maxhr(data_file):
     df = load_data(data_file)
     if not df.empty and "max_hr" in df.columns:
@@ -668,7 +711,8 @@ def get_latest_maxhr(data_file):
             return 0
     else:
         return 0
-    
+
+@timing    
 def get_latest_restinghr(data_file):
     df = load_data(data_file)
     if not df.empty and "resting_hr" in df.columns:
@@ -680,12 +724,14 @@ def get_latest_restinghr(data_file):
     else:
         return 0
 
+@timing
 def get_latest_hr_zones(df: pd.DataFrame) -> pd.DataFrame:
     df['timestamp'] = pd.to_datetime(df['timestamp'])
     latest_row      = df.loc[df['timestamp'].idxmax()]
     
     return latest_row
 
+@timing
 def calculate_training_effect(heart_rate_zones_df: pd.DataFrame, intensity: float):
     # Define aerobic and anaerobic factors for each zone (scaled up)
     zone_factors = {
@@ -708,7 +754,7 @@ def calculate_training_effect(heart_rate_zones_df: pd.DataFrame, intensity: floa
             time_in_zone_minutes = float(time_in_zone_seconds) / 60
 
         except Exception as e:
-            print(f"Error in converting time_in_zone_seconds for {zone}: {e}")
+            logging.error(f"Error in converting time_in_zone_seconds for {zone}: {e}")
             continue
 
         if zone in zone_factors:
@@ -734,6 +780,7 @@ def calculate_training_effect(heart_rate_zones_df: pd.DataFrame, intensity: floa
     anaerobic_te = min(5, anaerobic_te * i / h)
     return round(aerobic_te, 1), round(anaerobic_te, 1)
 
+@timing
 def calculate_hr_zone_time(df: pd.DataFrame, hr_zones: pd.DataFrame) -> pd.DataFrame:
     df['timestamp'] = pd.to_datetime(df['timestamp'])
     df['time_diff'] = df['timestamp'].diff().dt.total_seconds().fillna(0)
@@ -765,6 +812,7 @@ def calculate_hr_zone_time(df: pd.DataFrame, hr_zones: pd.DataFrame) -> pd.DataF
 
     return time_in_zones_df
 
+@timing
 def format_nice_date(timestamp: datetime.timestamp):
     dt  = timestamp.to_pydatetime()
     day = dt.day
@@ -775,6 +823,7 @@ def format_nice_date(timestamp: datetime.timestamp):
     formatted_date = dt.strftime(f"%A, %B {day}{suffix} %Y @ %I:%M%p")
     return formatted_date.lstrip("0")
 
+@timing
 def convert(value: float, from_to: Literal['miles_km',
                                            'km_miles',
                                            'mph_kmh',
@@ -800,6 +849,7 @@ def convert(value: float, from_to: Literal['miles_km',
 
     return round(value * conversion_factors[from_to], 1)
 
+@timing
 def get_location_details(api_key: str, latitude: float, longitude: float):
     """
     Returns city, state, country, and postal code based on latitude and longitude using OpenCage with geopy.
@@ -825,16 +875,17 @@ def get_location_details(api_key: str, latitude: float, longitude: float):
                 location_details['postal_code'] = address.get('postcode', '')
 
         except GeocoderTimedOut:
-            print("error: Geocoder service timed out.")
+            logging.error("Error: Geocoder service timed out")
             return {"error": "Geocoder service timed out."}
         except Exception as e:
-            print(f"error: {e}")
+            logging.error(f"Error: {e}")
             return {"error": str(e)}
         
         return location_details
     else:
         return None
 
+@timing
 def get_opencage_key(data_file):
     df = load_data(data_file)
     if not df.empty and "opencage_key" in df.columns:
@@ -845,7 +896,8 @@ def get_opencage_key(data_file):
             return None
     else:
         return None
-    
+
+@timing    
 def calculate_power_zone_time(df: pd.DataFrame, power_zones: pd.DataFrame) -> pd.DataFrame:
     df['timestamp'] = pd.to_datetime(df['timestamp'])
     df['time_diff'] = df['timestamp'].diff().dt.total_seconds().fillna(0)
