@@ -654,9 +654,9 @@ def calculate_training_effect(heart_rate_zones_df: pd.DataFrame, intensity: floa
     zone_factors = {
         "zone1": {"aerobic": 0.350, "anaerobic": 0.010},   # Low intensity, mostly recovery
         "zone2": {"aerobic": 0.400, "anaerobic": 0.020},   # Endurance
-        "zone3": {"aerobic": 0.350, "anaerobic": 0.300},   # Steady-state cardio
-        "zone4": {"aerobic": 0.100, "anaerobic": 0.900},   # Threshold/tempo
-        "zone5": {"aerobic": 0.000, "anaerobic": 1.600},   # High intensity (sprints)
+        "zone3": {"aerobic": 0.340, "anaerobic": 0.180},   # Steady-state cardio
+        "zone4": {"aerobic": 0.100, "anaerobic": 0.800},   # Threshold/tempo
+        "zone5": {"aerobic": 0.000, "anaerobic": 1.550},   # High intensity (sprints)
     }
     
     aerobic_te    = 0
