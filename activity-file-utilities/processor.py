@@ -16,13 +16,11 @@ def json_serializer(obj):
     return convert_timestamp_to_serializable(obj)
 
 profile = UserProfile()
-# PROFILE_FILE        = "basic_profile.json"
-# HR_FILE             = 'hr_profile.json'
 FTP                 = profile.get_ftp()
 BIO_HR_MAX          = profile.get_max_hr()
 BIO_HR_RESTING      = profile.get_resting_hr()
-# BIO_HR_ZONES        = profile.get_hr_zones()
 LATEST_HR_ZONES     = profile.get_hr_zones()
+LATEST_POWER_ZONES  = profile.get_power_zones()
 API_KEY             = profile.get_api_key()
 
 ext_filter  = 'fit'
@@ -120,7 +118,7 @@ for file in files:
             intensity_factor    = summary_df['intensity_factor'].iloc[0]
             
             hr_zone_time = h.calculate_hr_zone_time(fit_records_df, LATEST_HR_ZONES)
-            
+
             te = h.calculate_training_effect(hr_zone_time, intensity_factor)
             
             te_aerobic              = te[0]
@@ -147,21 +145,31 @@ for file in files:
             hr_time_in_zone_5 = hr_zone_time.loc[hr_zone_time['zone'] == 'zone5', 'time_in_seconds'].values[0]
 
             
+            power_zone_time = h.calculate_power_zone_time(fit_records_df, LATEST_POWER_ZONES)
+            
+            power_time_in_zone_1 = power_zone_time.loc[power_zone_time['zone'] == 'zone1', 'time_in_seconds'].values[0]
+            power_time_in_zone_2 = power_zone_time.loc[power_zone_time['zone'] == 'zone2', 'time_in_seconds'].values[0]
+            power_time_in_zone_3 = power_zone_time.loc[power_zone_time['zone'] == 'zone3', 'time_in_seconds'].values[0]
+            power_time_in_zone_4 = power_zone_time.loc[power_zone_time['zone'] == 'zone4', 'time_in_seconds'].values[0]
+            power_time_in_zone_5 = power_zone_time.loc[power_zone_time['zone'] == 'zone5', 'time_in_seconds'].values[0]
+            power_time_in_zone_6 = power_zone_time.loc[power_zone_time['zone'] == 'zone6', 'time_in_seconds'].values[0]
+            power_time_in_zone_7 = power_zone_time.loc[power_zone_time['zone'] == 'zone7', 'time_in_seconds'].values[0]
+
             bio_power_ftp        = FTP
-            bio_power_zone_1_min = 0
-            bio_power_zone_1_max = 0
-            bio_power_zone_2_min = 0
-            bio_power_zone_2_max = 0
-            bio_power_zone_3_min = 0
-            bio_power_zone_3_max = 0
-            bio_power_zone_4_min = 0
-            bio_power_zone_4_max = 0
-            bio_power_zone_5_min = 0
-            bio_power_zone_5_max = 0
-            bio_power_zone_6_min = 0
-            bio_power_zone_6_max = 0
-            bio_power_zone_7_min = 0
-            bio_power_zone_7_max = 0
+            bio_power_zone_1_min = LATEST_POWER_ZONES['zone.1.low_pwr']
+            bio_power_zone_1_max = LATEST_POWER_ZONES['zone.1.max_pwr']
+            bio_power_zone_2_min = LATEST_POWER_ZONES['zone.2.low_pwr']
+            bio_power_zone_2_max = LATEST_POWER_ZONES['zone.2.max_pwr']
+            bio_power_zone_3_min = LATEST_POWER_ZONES['zone.3.low_pwr']
+            bio_power_zone_3_max = LATEST_POWER_ZONES['zone.3.max_pwr']
+            bio_power_zone_4_min = LATEST_POWER_ZONES['zone.4.low_pwr']
+            bio_power_zone_4_max = LATEST_POWER_ZONES['zone.4.max_pwr']
+            bio_power_zone_5_min = LATEST_POWER_ZONES['zone.5.low_pwr']
+            bio_power_zone_5_max = LATEST_POWER_ZONES['zone.5.max_pwr']
+            bio_power_zone_6_min = LATEST_POWER_ZONES['zone.6.low_pwr']
+            bio_power_zone_6_max = LATEST_POWER_ZONES['zone.6.max_pwr']
+            bio_power_zone_7_min = LATEST_POWER_ZONES['zone.7.low_pwr']
+            bio_power_zone_7_max = LATEST_POWER_ZONES['zone.7.max_pwr']
             
 
         activity_data = dict()
@@ -198,13 +206,13 @@ for file in files:
                 'power_10m_max_avg':        round(float(power_10m_max_avg), 2),
                 'power_20m_max_avg':        round(float(power_20m_max_avg), 2),
                 'power_60m_max_avg':        round(float(power_60m_max_avg), 2),
-                'power_time_in_zone_1':     None,
-                'power_time_in_zone_2':     None,
-                'power_time_in_zone_3':     None,
-                'power_time_in_zone_4':     None,
-                'power_time_in_zone_5':     None,
-                'power_time_in_zone_6':     None,
-                'power_time_in_zone_7':     None,
+                'power_time_in_zone_1':     int(power_time_in_zone_1),
+                'power_time_in_zone_2':     int(power_time_in_zone_2),
+                'power_time_in_zone_3':     int(power_time_in_zone_3),
+                'power_time_in_zone_4':     int(power_time_in_zone_4),
+                'power_time_in_zone_5':     int(power_time_in_zone_5),
+                'power_time_in_zone_6':     int(power_time_in_zone_6),
+                'power_time_in_zone_7':     int(power_time_in_zone_7),
                 'cadence_max':              int(cadence_max),
                 'cadence_average':          int(cadence_average),
                 'hr_max':                   int(hr_max),
