@@ -806,3 +806,34 @@ def get_opencage_key(data_file):
             return None
     else:
         return None
+    
+def calculate_power_zone_time(df: pd.DataFrame, power_zones: pd.DataFrame) -> pd.DataFrame:
+    df['timestamp'] = pd.to_datetime(df['timestamp'])
+    df['time_diff'] = df['timestamp'].diff().dt.total_seconds().fillna(0)
+    
+    zone_numbers  = list(set([int(row.split('.')[1]) for row in power_zones.index if 'zone.' in row]))
+    num_zones     = len(zone_numbers)
+    time_in_zones = {f'zone{i+1}': 0 for i in range(num_zones)}
+
+    for i in range(1, len(df)):
+        power         = df.iloc[i]['power']
+        time_interval = df.iloc[i]['time_diff']
+
+        for zone_num in zone_numbers:
+            low_power_row = f'zone.{zone_num}.low_pwr'
+            max_power_row = f'zone.{zone_num}.max_pwr'
+
+            if low_power_row in power_zones.index and max_power_row in power_zones.index:
+                min_power = power_zones.loc[low_power_row]
+                max_power = power_zones.loc[max_power_row]
+
+                if min_power <= power <= max_power:
+                    time_in_zones[f'zone{zone_num}'] += time_interval
+                    break
+
+    time_in_zones_df = pd.DataFrame({
+        'zone': list(time_in_zones.keys()),
+        'time_in_seconds': list(time_in_zones.values())
+    })
+
+    return time_in_zones_df
