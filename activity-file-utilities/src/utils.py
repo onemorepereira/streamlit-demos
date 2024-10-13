@@ -884,7 +884,7 @@ def get_location_details(api_key: str, latitude: float, longitude: float):
 
         except GeocoderTimedOut:
             logging.error("Error: Geocoder service timed out")
-            raise Exception
+            raise GeocoderTimedOut
         except Exception as e:
             logging.error(f"Error: {e}")
             raise Exception
