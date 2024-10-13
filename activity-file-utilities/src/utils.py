@@ -316,7 +316,7 @@ def get_summary(df: pd.DataFrame, ftp: float, format: Literal["gpx", "fit"]) -> 
         
     if "power" in df:
         if "enhanced_speed" in df:
-            power_avg = round(df[(df["enhanced_speed"] > 0) & (df["power"] != 0)]["power"].mean(skipna=True))
+            power_avg = round(df[(df["enhanced_speed"] > 0)]["power"].mean(skipna=True))
         else:
             power_avg = round(df[df["speed"] > 0]["power"].mean(skipna=True))
             
