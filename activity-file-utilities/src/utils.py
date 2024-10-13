@@ -220,35 +220,28 @@ def create_chart(source_df1: str, source_df2: str, agg_df1: pd.DataFrame, agg_df
         height=400
     ).interactive()
 
-@timing    
+@timing
 def parse_fit_file(fit_file) -> pd.DataFrame:
     fitfile = fitparse.FitFile(fit_file)
-    rdata   = []
-    edata   = []
-    sdata   = []
-
-    for record in fitfile.get_messages("record"):
-        record_data = {}
-        for data_field in record:
-            record_data[data_field.name] = data_field.value
-        rdata.append(record_data)
-        
-    for event in fitfile.get_messages("event"):
-        event_data = {}
-        for data_field in event:
-            event_data[data_field.name] = data_field.value
-        edata.append(event_data)
-        
-    for session in fitfile.get_messages("session"):
-        session_data = {}
-        for data_field in session:
-            session_data[data_field.name] = data_field.value
-        sdata.append(session_data)
-
-    record_df   = pd.DataFrame(rdata)
-    event_df    = pd.DataFrame(edata)
-    session_df  = pd.DataFrame(sdata)
+    rdata, edata, sdata = [], [], []
     
+    # Single iteration through all messages
+    for message in fitfile:
+        data_dict = {field.name: field.value for field in message}
+
+        # Categorize message by type
+        if message.name == "record":
+            rdata.append(data_dict)
+        elif message.name == "event":
+            edata.append(data_dict)
+        elif message.name == "session":
+            sdata.append(data_dict)
+
+    # Construct DataFrames
+    record_df  = pd.DataFrame(rdata)
+    event_df   = pd.DataFrame(edata)
+    session_df = pd.DataFrame(sdata)
+
     return record_df, event_df, session_df
 
 @timing
