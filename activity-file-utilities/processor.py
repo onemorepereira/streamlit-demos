@@ -51,7 +51,7 @@ for file in files:
             speed_moving_average = summary_df['speed_moving_avg'].iloc[0]
             speed_max            = summary_df['speed_max'].iloc[0]
             
-            if 'indoor' not in activity_sub_type:
+            if 'indoor_cycling' not in activity_sub_type:
                 try:
                     activity_start_latitude  = fit_records_df['position_lat'].iloc[0]*(180 / 2**31)
                     activity_start_longitude = fit_records_df['position_long'].iloc[0]*(180 / 2**31)
@@ -67,10 +67,10 @@ for file in files:
                     
                 except Exception as e:
                     logging.error(e)
-                    activity_start_city     = None
-                    activity_start_state    = None
-                    activity_start_zip      = None
-                    activity_start_country  = None
+                    activity_start_city      = None
+                    activity_start_state     = None
+                    activity_start_zip       = None
+                    activity_start_country   = None
             
                 try:
                     activity_end_latitude  = fit_records_df['position_lat'].iloc[-1]*(180 / 2**31)
@@ -87,15 +87,25 @@ for file in files:
                     
                 except Exception as e:
                     logging.error(e)
-                    activity_end_city     = None
-                    activity_end_state    = None
-                    activity_end_zip      = None
-                    activity_end_country  = None
+                    activity_end_city      = None
+                    activity_end_state     = None
+                    activity_end_zip       = None
+                    activity_end_country   = None
+            
+            # Fixing my loop-goof-off
             else:
-                activity_start_city     = None
-                activity_start_state    = None
-                activity_start_zip      = None
-                activity_start_country  = None
+                activity_start_latitude  = None
+                activity_start_longitude = None
+                activity_end_latitude    = None
+                activity_end_longitude   = None
+                activity_start_city      = None
+                activity_start_state     = None
+                activity_start_zip       = None
+                activity_start_country   = None
+                activity_end_city        = None
+                activity_end_state       = None
+                activity_end_zip         = None
+                activity_end_country     = None
             
             activity_id = hash.sha256(f"{activity_type} {activity_sub_type} {activity_start_time}".encode('utf-8')).hexdigest()
             
@@ -152,13 +162,24 @@ for file in files:
             
             power_zone_time = h.calculate_power_zone_time(fit_records_df, LATEST_POWER_ZONES)
             
-            power_time_in_zone_1 = power_zone_time.loc[power_zone_time['zone'] == 'zone1', 'time_in_seconds'].values[0]
-            power_time_in_zone_2 = power_zone_time.loc[power_zone_time['zone'] == 'zone2', 'time_in_seconds'].values[0]
-            power_time_in_zone_3 = power_zone_time.loc[power_zone_time['zone'] == 'zone3', 'time_in_seconds'].values[0]
-            power_time_in_zone_4 = power_zone_time.loc[power_zone_time['zone'] == 'zone4', 'time_in_seconds'].values[0]
-            power_time_in_zone_5 = power_zone_time.loc[power_zone_time['zone'] == 'zone5', 'time_in_seconds'].values[0]
-            power_time_in_zone_6 = power_zone_time.loc[power_zone_time['zone'] == 'zone6', 'time_in_seconds'].values[0]
-            power_time_in_zone_7 = power_zone_time.loc[power_zone_time['zone'] == 'zone7', 'time_in_seconds'].values[0]
+            # Just in case not all activities contain power data
+            try:
+                power_time_in_zone_1 = power_zone_time.loc[power_zone_time['zone'] == 'zone1', 'time_in_seconds'].values[0]
+                power_time_in_zone_2 = power_zone_time.loc[power_zone_time['zone'] == 'zone2', 'time_in_seconds'].values[0]
+                power_time_in_zone_3 = power_zone_time.loc[power_zone_time['zone'] == 'zone3', 'time_in_seconds'].values[0]
+                power_time_in_zone_4 = power_zone_time.loc[power_zone_time['zone'] == 'zone4', 'time_in_seconds'].values[0]
+                power_time_in_zone_5 = power_zone_time.loc[power_zone_time['zone'] == 'zone5', 'time_in_seconds'].values[0]
+                power_time_in_zone_6 = power_zone_time.loc[power_zone_time['zone'] == 'zone6', 'time_in_seconds'].values[0]
+                power_time_in_zone_7 = power_zone_time.loc[power_zone_time['zone'] == 'zone7', 'time_in_seconds'].values[0]
+            except Exception:
+                power_time_in_zone_1 = None
+                power_time_in_zone_2 = None
+                power_time_in_zone_3 = None
+                power_time_in_zone_4 = None
+                power_time_in_zone_5 = None
+                power_time_in_zone_6 = None
+                power_time_in_zone_7 = None
+                
 
             bio_power_ftp        = FTP
             bio_power_zone_1_min = LATEST_POWER_ZONES['zone.1.low_pwr']
@@ -188,20 +209,20 @@ for file in files:
                 'activity_start_longitude': activity_start_longitude,
                 'activity_start_city':      activity_start_city,
                 'activity_start_state':     activity_start_state,
-                'activity_start_zip':       activity_start_zip,
+                'activity_start_zip':       str(activity_start_zip),
                 'activity_start_country':   activity_start_country,
                 'activity_end_latitude':    activity_end_latitude,
                 'activity_end_longitude':   activity_end_longitude,
                 'activity_end_city':        activity_end_city,
                 'activity_end_state':       activity_end_state,
-                'activity_end_zip':         activity_end_zip,
+                'activity_end_zip':         str(activity_end_zip),
                 'activity_end_country':     activity_end_country,
                 'activity_distance':        round(float(activity_distance), 2),
-                'time_coasting':            int(time_coasting),
-                'time_stopped':             int(time_stopped),
-                'time_moving':              int(time_moving),
-                'time_working':             int(time_working),
-                'time_total':               int(time_total),
+                'time_coasting':            int(time_coasting) if time_coasting else 0,
+                'time_stopped':             int(time_stopped) if time_stopped else 0,
+                'time_moving':              int(time_moving) if time_moving else 0,
+                'time_working':             int(time_working) if time_working else 0,
+                'time_total':               int(time_total) if time_total else 0,
                 'speed_average':            round(float(speed_average), 2),
                 'speed_moving_average':     round(float(speed_moving_average), 2),
                 'speed_max':                round(float(speed_max), 2),
@@ -213,13 +234,13 @@ for file in files:
                 'power_10m_max_avg':        round(float(power_10m_max_avg), 2),
                 'power_20m_max_avg':        round(float(power_20m_max_avg), 2),
                 'power_60m_max_avg':        round(float(power_60m_max_avg), 2),
-                'power_time_in_zone_1':     int(power_time_in_zone_1),
-                'power_time_in_zone_2':     int(power_time_in_zone_2),
-                'power_time_in_zone_3':     int(power_time_in_zone_3),
-                'power_time_in_zone_4':     int(power_time_in_zone_4),
-                'power_time_in_zone_5':     int(power_time_in_zone_5),
-                'power_time_in_zone_6':     int(power_time_in_zone_6),
-                'power_time_in_zone_7':     int(power_time_in_zone_7),
+                'power_time_in_zone_1':     int(power_time_in_zone_1) if power_time_in_zone_1 else 0,
+                'power_time_in_zone_2':     int(power_time_in_zone_2) if power_time_in_zone_2 else 0,
+                'power_time_in_zone_3':     int(power_time_in_zone_3) if power_time_in_zone_3 else 0,
+                'power_time_in_zone_4':     int(power_time_in_zone_4) if power_time_in_zone_4 else 0,
+                'power_time_in_zone_5':     int(power_time_in_zone_5) if power_time_in_zone_5 else 0,
+                'power_time_in_zone_6':     int(power_time_in_zone_6) if power_time_in_zone_6 else 0,
+                'power_time_in_zone_7':     int(power_time_in_zone_7) if power_time_in_zone_7 else 0,
                 'cadence_max':              int(cadence_max),
                 'cadence_average':          int(cadence_average),
                 'hr_max':                   int(hr_max),

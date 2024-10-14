@@ -340,7 +340,7 @@ def get_summary(df: pd.DataFrame, ftp: float, format: Literal["gpx", "fit"]) -> 
 
     if "enhanced_speed" in df:
         speed_avg        = round(df["enhanced_speed"].mean(skipna=True) * 3.6)
-        speed_moving_avg = round(df[df["enhanced_speed"] > 8]["enhanced_speed"].mean(skipna=True) * 3.6)
+        speed_moving_avg = round(df[df["enhanced_speed"] > 4]["enhanced_speed"].mean(skipna=True) * 3.6)
         speed_max        = round(df["enhanced_speed"].max() * 3.6)
     elif "speed" in df:
         speed_avg        = round(df["speed"].mean(skipna=True) * 1.609)
@@ -519,7 +519,8 @@ def get_max_avg_pwr(df: pd.DataFrame, minutes: float, time_column: str = 'timest
 @timing
 def get_coasting(df: pd.DataFrame, time_column: str = 'timestamp'):
     if 'power' not in df or 'cadence' not in df or ('speed' not in df and 'enhanced_speed' not in df) or time_column not in df:
-        raise ValueError(f"The DataFrame must contain 'power', 'cadence', 'speed', and '{time_column}' columns")
+        logging.error(f"Missing at least power, cadence, speed or enhanced_speed, or {time_column}")
+        return None, None
     
     # Ensure the time column is in datetime format
     if not pd.api.types.is_datetime64_any_dtype(df[time_column]):
@@ -546,8 +547,9 @@ def get_coasting(df: pd.DataFrame, time_column: str = 'timestamp'):
 @timing
 def get_stopped_time(df: pd.DataFrame, time_column: str = 'timestamp'):
     if ('speed' not in df and 'enhanced_speed' not in df) or time_column not in df:
-        raise ValueError(f"The DataFrame must contain 'speed' or 'enhanced_speed', and '{time_column}' columns")
-    
+        logging.error(f"The DataFrame must contain 'speed' or 'enhanced_speed', or '{time_column}' columns")
+        return None, None
+        
     # Ensure the time column is in datetime format
     if not pd.api.types.is_datetime64_any_dtype(df[time_column]):
         df[time_column] = pd.to_datetime(df[time_column])
@@ -573,7 +575,8 @@ def get_stopped_time(df: pd.DataFrame, time_column: str = 'timestamp'):
 @timing
 def get_moving_time(df: pd.DataFrame, time_column: str = 'timestamp'):
     if ('speed' not in df and 'enhanced_speed' not in df) or time_column not in df:
-        raise ValueError(f"The DataFrame must contain 'speed' or 'enhanced_speed', and '{time_column}' columns")
+        logging.error(f"The DataFrame must contain 'speed' or 'enhanced_speed', or '{time_column}' columns")
+        return None, None
     
     # Ensure the time column is in datetime format
     if not pd.api.types.is_datetime64_any_dtype(df[time_column]):
@@ -600,7 +603,8 @@ def get_moving_time(df: pd.DataFrame, time_column: str = 'timestamp'):
 @timing
 def get_work_time(df: pd.DataFrame, time_column: str = 'timestamp'):
     if 'power' not in df or 'cadence' not in df or time_column not in df:
-        raise ValueError(f"The DataFrame must contain 'power', 'cadence', and '{time_column}' columns")
+        logging.error(f"The DataFrame must contain 'speed' or 'enhanced_speed', or '{time_column}' columns")
+        return None, None
     
     # Ensure the time column is in datetime format
     if not pd.api.types.is_datetime64_any_dtype(df[time_column]):
@@ -623,7 +627,8 @@ def get_work_time(df: pd.DataFrame, time_column: str = 'timestamp'):
 @timing
 def get_total_time(df: pd.DataFrame, time_column: str = 'timestamp'):
     if time_column not in df:
-        raise ValueError(f"The DataFrame must contain the '{time_column}' column")
+        logging.error(f"The DataFrame must contain a '{time_column}' column")
+        return None, None
     
     # Ensure the time column is in datetime format
     if not pd.api.types.is_datetime64_any_dtype(df[time_column]):
@@ -900,6 +905,10 @@ def get_opencage_key(data_file):
 
 @timing    
 def calculate_power_zone_time(df: pd.DataFrame, power_zones: pd.DataFrame) -> pd.DataFrame:
+    if 'timestamp' not in df or 'power' not in df:
+        logging.error("Main DataFrame must contain timestamp and power data")
+        return pd.DataFrame()
+    
     df['timestamp'] = pd.to_datetime(df['timestamp'])
     df['time_diff'] = df['timestamp'].diff().dt.total_seconds().fillna(0)
     
