@@ -23,38 +23,70 @@ if os.path.exists(JOURNAL_FILE):
         aggregated      = h.agg_df(df=journal_df)
         wky_summary     = h.weekly_nutrient_summary(journal_df)
  
-        m2w_week =  wky_summary.index[-3].strftime('%m/%d/%Y')
-        lst_week =  wky_summary.index[-2].strftime('%m/%d/%Y')
-        this_week = wky_summary.index[-1].strftime('%m/%d/%Y')
+        m2w_week =  wky_summary['week_start'].iloc[-3].strftime('%m/%d/%Y')
+        lst_week =  wky_summary['week_start'].iloc[-2].strftime('%m/%d/%Y')
+        this_week = wky_summary['week_start'].iloc[-1].strftime('%m/%d/%Y')
         
-        st.subheader("Last Week Snapshot - {} vs {}".format(lst_week, m2w_week))
+        st.subheader("Last Week vs {}".format(m2w_week))
         col1, col2, col3, col4 = st.columns([1,1,1,1])
         with col1:
-            st.metric(label='Proteins', value="{:,.0f}".format(round(wky_summary['total_protein'].iloc[-2])), delta='{:,.0f}'.format(round(wky_summary['total_protein'].iloc[-2] - wky_summary['total_protein'].iloc[-3])))
+            st.metric(label='Proteins', value="{:,.0f}".format(
+                round(wky_summary['total_protein'].iloc[-2])), 
+                      delta='{:,.0f}'.format(
+                          round(wky_summary['total_protein'].iloc[-2] - wky_summary['total_protein'].iloc[-3])
+                          ))
             st.divider()
         with col2:
-            st.metric(label='Carbohydrates', value="{:,.0f}".format(round(wky_summary['total_carbs'].iloc[-2])), delta='{:,.0f}'.format(round(wky_summary['total_carbs'].iloc[-2] - wky_summary['total_carbs'].iloc[-3])))
+            st.metric(label='Carbohydrates', value="{:,.0f}".format(
+                round(wky_summary['total_carbs'].iloc[-2])),
+                      delta='{:,.0f}'.format(
+                          round(wky_summary['total_carbs'].iloc[-2] - wky_summary['total_carbs'].iloc[-3])
+                          ))
             st.divider()
         with col3:
-            st.metric(label='Fats', value="{:,.0f}".format(round(wky_summary['total_fat'].iloc[-2])), delta='{:,.0f}'.format(round(wky_summary['total_fat'].iloc[-2] - wky_summary['total_fat'].iloc[-3])))
+            st.metric(label='Fats', value="{:,.0f}".format(
+                round(wky_summary['total_fat'].iloc[-2])),
+                      delta='{:,.0f}'.format(
+                          round(wky_summary['total_fat'].iloc[-2] - wky_summary['total_fat'].iloc[-3])
+                          ))
             st.divider()
         with col4:
-            st.metric(label='Calories', value="{:,.0f}".format(round(wky_summary['total_calories'].iloc[-2])), delta='{:,.0f}'.format(round(wky_summary['total_calories'].iloc[-2] - wky_summary['total_calories'].iloc[-3])))
+            st.metric(label='Calories', value="{:,.0f}".format(
+                round(wky_summary['total_calories'].iloc[-2])),
+                      delta='{:,.0f}'.format(
+                          round(wky_summary['total_calories'].iloc[-2] - wky_summary['total_calories'].iloc[-3])
+                          ))
             st.divider()
             
-        st.subheader("This Week Trend - {} vs {}".format(this_week, lst_week))
+        st.subheader("This Week vs {}".format(lst_week))
         col1, col2, col3, col4 = st.columns([1,1,1,1])
         with col1:
-            st.metric(label='Proteins', value="{:,.0f}".format(round(wky_summary['total_protein'].iloc[-1])), delta='{:,.0f}'.format(round(wky_summary['total_protein'].iloc[-1] - wky_summary['total_protein'].iloc[-2])))
+            st.metric(label='Proteins', value="{:,.0f}".format(
+                round(wky_summary['total_protein'].iloc[-1])),
+                      delta='{:,.0f}'.format(
+                          round(wky_summary['total_protein'].iloc[-1] - wky_summary['total_protein'].iloc[-2])
+                          ))
             st.divider()
         with col2:
-            st.metric(label='Carbohydrates', value="{:,.0f}".format(round(wky_summary['total_carbs'].iloc[-1])), delta='{:,.0f}'.format(round(wky_summary['total_carbs'].iloc[-1] - wky_summary['total_carbs'].iloc[-2])))
+            st.metric(label='Carbohydrates', value="{:,.0f}".format(
+                round(wky_summary['total_carbs'].iloc[-1])),
+                      delta='{:,.0f}'.format(
+                          round(wky_summary['total_carbs'].iloc[-1] - wky_summary['total_carbs'].iloc[-2])
+                          ))
             st.divider()
         with col3:
-            st.metric(label='Fats', value="{:,.0f}".format(round(wky_summary['total_fat'].iloc[-1])), delta='{:,.0f}'.format(round(wky_summary['total_fat'].iloc[-1] - wky_summary['total_fat'].iloc[-2])))
+            st.metric(label='Fats', value="{:,.0f}".format(
+                round(wky_summary['total_fat'].iloc[-1])),
+                      delta='{:,.0f}'.format(
+                          round(wky_summary['total_fat'].iloc[-1] - wky_summary['total_fat'].iloc[-2])
+                          ))
             st.divider()
         with col4:
-            st.metric(label='Calories', value="{:,.0f}".format(round(wky_summary['total_calories'].iloc[-1])), delta='{:,.0f}'.format(round(wky_summary['total_calories'].iloc[-1] - wky_summary['total_calories'].iloc[-2])))
+            st.metric(label='Calories', value="{:,.0f}".format(
+                round(wky_summary['total_calories'].iloc[-1])),
+                      delta='{:,.0f}'.format(
+                          round(wky_summary['total_calories'].iloc[-1] - wky_summary['total_calories'].iloc[-2])
+                          ))
             st.divider()
                    
         # Display the DataFrames
@@ -62,7 +94,7 @@ if os.path.exists(JOURNAL_FILE):
         st.dataframe(journal_df)
         
         st.write('### Primary Macro Sources by week')
-        st.dataframe(wky_summary)
+        st.dataframe(wky_summary.set_index('week_start'))
         
  
         
