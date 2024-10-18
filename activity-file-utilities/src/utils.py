@@ -746,44 +746,48 @@ def calculate_training_effect(heart_rate_zones_df: pd.DataFrame, intensity: floa
         "zone4": {"aerobic": 0.100, "anaerobic": 0.800},   # Threshold/tempo
         "zone5": {"aerobic": 0.000, "anaerobic": 1.550},   # High intensity (sprints)
     }
-    
+
     aerobic_te    = 0
     anaerobic_te  = 0
     duration_mins = 0
-    
-    for index, row in heart_rate_zones_df.iterrows():
-        zone = row['zone']
-        time_in_zone_seconds = row['time_in_seconds']
 
-        try:
-            time_in_zone_minutes = float(time_in_zone_seconds) / 60
+    for _, row in heart_rate_zones_df.iterrows():
+        zone = row.get('zone', None)
+        time_in_zone_seconds = row.get('time_in_seconds', 0)
 
-        except Exception as e:
-            logging.error(f"Error in converting time_in_zone_seconds for {zone}: {e}")
+        # Ensure zone and time_in_seconds are valid
+        if zone not in zone_factors or not isinstance(time_in_zone_seconds, (int, float)):
+            logging.warning(f"Skipping invalid data in row: {row}")
             continue
+        
+        # Convert seconds to minutes
+        time_in_zone_minutes = time_in_zone_seconds / 60
 
-        if zone in zone_factors:
-            aerobic_te    += time_in_zone_minutes * zone_factors[zone]["aerobic"]
-            anaerobic_te  += time_in_zone_minutes * zone_factors[zone]["anaerobic"]
-            duration_mins += time_in_zone_minutes
+        # Accumulate aerobic and anaerobic training effect
+        factors        = zone_factors[zone]
+        aerobic_te    += time_in_zone_minutes * factors["aerobic"]
+        anaerobic_te  += time_in_zone_minutes * factors["anaerobic"]
+        duration_mins += time_in_zone_minutes
 
-    # Scale by intensity factor and cap at maximum 5
-    if duration_mins <= 60:
-        h = 60
-        i = intensity * 10
-    elif duration_mins > 60 and duration_mins <= 120:
-        h = 90
-        i = intensity * 15
-    elif duration_mins > 120 and duration_mins <= 240:
-        h = 180
-        i = intensity * 12
-    elif duration_mins > 240:
-        h = 210
-        i = intensity * 18
+    # Helper function to scale the training effect based on duration and intensity
+    def scale_training_effect(te_value, duration, intensity):
+        if duration <= 60:
+            h, i = 60, intensity * 10
+        elif duration <= 120:
+            h, i = 90, intensity * 15
+        elif duration <= 240:
+            h, i = 180, intensity * 12
+        else:
+            h, i = 210, intensity * 18
+        return min(5, te_value * i / h)
 
-    aerobic_te   = min(5, aerobic_te   * i / h)
-    anaerobic_te = min(5, anaerobic_te * i / h)
+    # Scale aerobic and anaerobic training effects
+    aerobic_te   = scale_training_effect(aerobic_te, duration_mins, intensity)
+    anaerobic_te = scale_training_effect(anaerobic_te, duration_mins, intensity)
+
+    # Return results rounded to 1 decimal place
     return round(aerobic_te, 1), round(anaerobic_te, 1)
+
 
 @timing
 def calculate_hr_zone_time(df: pd.DataFrame, hr_zones: pd.DataFrame) -> pd.DataFrame:
