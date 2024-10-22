@@ -2,7 +2,7 @@ from src.core import UserProfile
 from streamlit_folium import st_folium
 import src.utils as h
 import streamlit as st
-
+import pandas as pd
 
 profile = UserProfile()
 st.set_page_config(
@@ -63,8 +63,26 @@ if uploaded_file is not None:
                 starting_zip    = None
                 starting_ctry   = None
             
-            hr_zone_time    = h.calculate_hr_zone_time(activity, profile.get_hr_zones())
+            hr_zone_time    = h.calculate_hr_zone_time(activity, profile.get_hr_zones())           
             activity_te     = h.calculate_training_effect(hr_zone_time, float(summary['intensity_factor'].iloc[0]))
+            
+            # Need to move this to utils.py
+            model_dic = dict()
+            model_dic['hr_time_in_zone_1']     = hr_zone_time.set_index('zone').transpose()['zone1'].values
+            model_dic['hr_time_in_zone_2']     = hr_zone_time.set_index('zone').transpose()['zone2'].values
+            model_dic['hr_time_in_zone_3']     = hr_zone_time.set_index('zone').transpose()['zone3'].values
+            model_dic['hr_time_in_zone_4']     = hr_zone_time.set_index('zone').transpose()['zone4'].values
+            model_dic['hr_time_in_zone_5']     = hr_zone_time.set_index('zone').transpose()['zone5'].values
+            model_dic['training_stress_score'] = summary['tss']
+            model_dic['activity_distance']     = summary['distance_total']
+            model_dic['hr_average']            = summary['hr_avg']
+            model_dic['hr_max']                = summary['hr_max']
+            model_dic['time_total']            = summary['time_total_seconds']
+            model_dic['intensity_factor']      = summary['intensity_factor']
+            
+            model_df   = pd.DataFrame(model_dic)
+            aerobic_te = h.predict_aerobic_training_effect(model_df)
+            
             power_zone_time = h.calculate_power_zone_time(activity, profile.get_power_zones())
             
         elif uploaded_file.type == "application/gpx+xml":
@@ -149,7 +167,7 @@ if uploaded_file is not None:
             st.divider()
 
             st.subheader("Training Effect")
-            st.metric(label='Aerobic TE',    value=activity_te[0])
+            st.metric(label='Aerobic TE',    value=aerobic_te)
             st.metric(label='Anaerobic TE',  value=activity_te[1])
             
         with col5:

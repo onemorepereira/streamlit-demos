@@ -3,7 +3,9 @@ fitparse>=1.2.0
 folium>=0.17.0
 geopy>=2.4.1
 gpxpy>=1.6.2
+joblib>=1.4.0
 pandas>=2.2.3
+scikit-learn>=1.5.2
 streamlit>=1.38.0
 streamlit_folium>=0.23.0
-tenacity
+tensorflow>=2.17.0

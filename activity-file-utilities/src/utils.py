@@ -14,8 +14,12 @@ import json
 import os
 import pandas as pd
 import logging
-from tenacity import retry, stop_after_attempt, wait_exponential, RetryError
+import joblib
 
+os.environ['TF_CPP_MIN_LOG_LEVEL']  = '3'
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+import tensorflow as tf
+from tensorflow.keras.models import load_model
 
 logging.basicConfig(format='%(asctime)s [%(levelname)s] [%(module)s.%(funcName)s] [%(threadName)s] - %(message)s', level=logging.INFO)
 
@@ -942,3 +946,51 @@ def calculate_power_zone_time(df: pd.DataFrame, power_zones: pd.DataFrame) -> pd
     })
 
     return time_in_zones_df
+
+@timing
+def predict_aerobic_training_effect(input_df):
+    """
+    Loads the pre-trained model and scaler, then predicts the aerobic training effect 
+    based on the provided DataFrame.
+
+    Args:
+        input_df (pd.DataFrame): DataFrame containing the necessary features.
+
+    Returns:
+        float: Rounded predicted aerobic training effect.
+    """
+    
+    MODEL  = load_model('./models/aerobic_training_effect_model.keras')
+    SCALER = joblib.load('./models/aerobic_training_effect_scaler.pkl')
+
+    required_keys = [
+        'activity_distance',
+        'hr_average',
+        'hr_max',
+        'hr_time_in_zone_1',
+        'hr_time_in_zone_2',
+        'hr_time_in_zone_3',
+        'hr_time_in_zone_4',
+        'hr_time_in_zone_5',
+        'intensity_factor',
+        'time_total',
+        'training_stress_score',
+    ]
+
+    # Ensure input DataFrame contains the required keys
+    input_data = {key: input_df[key].values[0] for key in required_keys if key in input_df.columns}
+    if len(input_data) < len(required_keys):
+        raise ValueError(f"Missing keys in input DataFrame. Required keys are: {required_keys}.")
+
+    input_df_ordered = pd.DataFrame([input_data])[required_keys]  # Ensure the order matches
+    input_scaled     = SCALER.transform(input_df_ordered)
+
+    @tf.function(reduce_retracing=True)
+    def make_prediction(input_scaled_tensor):
+        return MODEL(input_scaled_tensor)
+
+    input_scaled_tensor = tf.convert_to_tensor(input_scaled, dtype=tf.float32)
+    predictions_tensor  = make_prediction(input_scaled_tensor)
+    predicted_value     = min(5.0, round(float(predictions_tensor[0][0]), 1))
+
+    return predicted_value

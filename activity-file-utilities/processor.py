@@ -6,8 +6,35 @@ import os
 import pandas as pd
 import src.utils as h
 import logging
+import pytz
+from timezonefinder import TimezoneFinder
+
 
 logging.basicConfig(format='%(asctime)s [%(levelname)s] [%(module)s.%(funcName)s] [%(threadName)s] - %(message)s', level=logging.INFO)
+
+tf = TimezoneFinder()
+
+# Function to convert time to the appropriate timezone
+def localize_time(timestamp, lat=None, lon=None):
+    if lat is not None and lon is not None:
+        try:
+            timezone_str = tf.timezone_at(lng=lon, lat=lat)
+            if timezone_str:
+                local_tz = pytz.timezone(timezone_str)
+            else:
+                # Fallback to Central Time if timezone not found
+                local_tz = pytz.timezone('US/Central')
+        except Exception as e:
+            logging.error(f"Error determining timezone: {e}")
+            local_tz = pytz.timezone('US/Central')
+    else:
+        # Fallback to Central Time for indoor activities
+        local_tz = pytz.timezone('US/Central')
+
+    utc_tz = pytz.utc
+    utc_time = utc_tz.localize(timestamp)
+    local_time = utc_time.astimezone(local_tz)
+    return local_time
 
 def check_activity(file_path):
     return os.path.isfile(file_path)
@@ -21,6 +48,29 @@ def convert_timestamp_to_serializable(obj):
 def json_serializer(obj):
     return convert_timestamp_to_serializable(obj)
 
+def combine_json_to_csv(directory_path, output_csv_file):
+    combined_data = []  # List to hold the data from all JSON files
+    
+    # Iterate over all JSON files in the directory
+    for file_name in os.listdir(directory_path):
+        if file_name.endswith('.json'):
+            file_path = os.path.join(directory_path, file_name)
+            
+            # Load JSON data
+            with open(file_path, 'r') as f:
+                data = json.load(f)
+                
+                # Extract the data inside the nested dictionary (e.g., inside the unique hash key)
+                for key, activity_data in data.items():
+                    combined_data.append(activity_data)  # Append the activity data
+                
+    # Convert combined data into a DataFrame
+    df = pd.DataFrame(combined_data)
+    
+    # Save the DataFrame to a CSV file
+    df.to_csv(output_csv_file, index=False)
+    print(f"Data successfully saved to {output_csv_file}")
+    
 profile = UserProfile()
 FTP                 = profile.get_ftp()
 BIO_HR_MAX          = profile.get_max_hr()
@@ -29,14 +79,14 @@ LATEST_HR_ZONES     = profile.get_hr_zones()
 LATEST_POWER_ZONES  = profile.get_power_zones()
 API_KEY             = profile.get_api_key()
 
-ext_filter  = 'fit'
-root        = './samples'
-files       = os.listdir(root)
+EXT_FILTER  = 'fit'
+ROOT        = './samples'
+FILES       = os.listdir(ROOT)
 
-for file in files:
-    if file.endswith(ext_filter):
-        full_path = f"{root}/{file}"
-        summary_file_name = f"{root}/summary_{file}.json"
+for file in FILES:
+    if file.endswith(EXT_FILTER):
+        full_path = f"{ROOT}/{file}"
+        summary_file_name = f"{ROOT}/summary_{file}.json"
         logging.debug(f"Check to see if {summary_file_name} needs to be processed")
         if not check_activity(summary_file_name):
             logging.info(f"Processing {full_path} --> {summary_file_name}")
@@ -45,7 +95,7 @@ for file in files:
                 fit_records_df = fitfile[0]
                 fit_events_df  = fitfile[1]
                 fit_session_df = fitfile[2]
-                summary_df     = h.get_summary(fit_records_df, ftp = FTP, format=ext_filter)
+                summary_df     = h.get_summary(fit_records_df, ftp = FTP, format=EXT_FILTER)
                 
                 activity_type       = fit_session_df['sport'].iloc[-1]
                 activity_sub_type   = fit_session_df['sub_sport'].iloc[-1]
@@ -97,24 +147,13 @@ for file in files:
                         activity_end_state     = None
                         activity_end_zip       = None
                         activity_end_country   = None
-                
-                # Fixing my loop-goof-off
-                else:
-                    activity_start_latitude  = None
-                    activity_start_longitude = None
-                    activity_end_latitude    = None
-                    activity_end_longitude   = None
-                    activity_start_city      = None
-                    activity_start_state     = None
-                    activity_start_zip       = None
-                    activity_start_country   = None
-                    activity_end_city        = None
-                    activity_end_state       = None
-                    activity_end_zip         = None
-                    activity_end_country     = None
-                
+                        
+                # Localize start and end times based on the start latitude/longitude
+                activity_start_time = localize_time(activity_start_time, activity_start_latitude, activity_start_longitude)
+                activity_end_time = localize_time(activity_end_time, activity_start_latitude, activity_start_longitude)
+
                 activity_id = hash.sha256(f"{activity_type} {activity_sub_type} {activity_start_time}".encode('utf-8')).hexdigest()
-                
+
                 time_coasting = summary_df['time_coasting_seconds'].iloc[0]
                 time_stopped  = summary_df['time_stopped_seconds'].iloc[0]
                 time_moving   = summary_df['time_moving_seconds'].iloc[0]
@@ -142,7 +181,23 @@ for file in files:
 
                 te = h.calculate_training_effect(hr_zone_time, intensity_factor)
                 
-                te_aerobic              = te[0]
+                model_dic = dict()
+                model_dic['hr_time_in_zone_1']     = hr_zone_time.set_index('zone').transpose()['zone1'].values
+                model_dic['hr_time_in_zone_2']     = hr_zone_time.set_index('zone').transpose()['zone2'].values
+                model_dic['hr_time_in_zone_3']     = hr_zone_time.set_index('zone').transpose()['zone3'].values
+                model_dic['hr_time_in_zone_4']     = hr_zone_time.set_index('zone').transpose()['zone4'].values
+                model_dic['hr_time_in_zone_5']     = hr_zone_time.set_index('zone').transpose()['zone5'].values
+                model_dic['training_stress_score'] = summary_df['tss']
+                model_dic['activity_distance']     = summary_df['distance_total']
+                model_dic['hr_average']            = summary_df['hr_avg']
+                model_dic['hr_max']                = summary_df['hr_max']
+                model_dic['time_total']            = summary_df['time_total_seconds']
+                model_dic['intensity_factor']      = summary_df['intensity_factor']
+                
+                model_df   = pd.DataFrame(model_dic)
+                aerobic_te = h.predict_aerobic_training_effect(model_df)
+                
+                te_aerobic              = aerobic_te
                 te_anaerobic            = te[1]
                 training_stress_score   = summary_df['tss'].iloc[0]
                 
@@ -205,7 +260,7 @@ for file in files:
                 
 
             activity_data = dict()
-            with open(f"{root}/summary_{file}.json", 'w') as json_file:
+            with open(f"{ROOT}/summary_{file}.json", 'w') as json_file:
                 activity_data[activity_id] = {
                     'activity_type':            activity_type,
                     'activity_sub_type':        activity_sub_type,
@@ -290,3 +345,5 @@ for file in files:
                 }
                 
                 json.dump(activity_data, json_file, indent=4)
+                
+combine_json_to_csv(ROOT, f"{ROOT}/activities.csv")
