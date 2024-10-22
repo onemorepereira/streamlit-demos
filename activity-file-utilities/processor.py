@@ -123,10 +123,12 @@ for file in FILES:
                         
                     except Exception as e:
                         logging.error(e)
-                        activity_start_city      = None
-                        activity_start_state     = None
-                        activity_start_zip       = None
-                        activity_start_country   = None
+                        activity_start_latitude  = None
+                        activity_start_longitude = None
+                        activity_start_city      = '-'
+                        activity_start_state     = '-'
+                        activity_start_zip       = '-'
+                        activity_start_country   = '-'
                 
                     try:
                         activity_end_latitude  = fit_records_df['position_lat'].iloc[-1]*(180 / 2**31)
@@ -143,14 +145,29 @@ for file in FILES:
                         
                     except Exception as e:
                         logging.error(e)
-                        activity_end_city      = None
-                        activity_end_state     = None
-                        activity_end_zip       = None
-                        activity_end_country   = None
+                        activity_end_latitude  = None
+                        activity_end_longitude = None
+                        activity_end_city      = '-'
+                        activity_end_state     = '-'
+                        activity_end_zip       = '-'
+                        activity_end_country   = '-'
+                else:
+                    activity_start_latitude  = None
+                    activity_start_longitude = None
+                    activity_end_latitude    = None
+                    activity_end_longitude   = None
+                    activity_start_city      = '-'
+                    activity_start_state     = '-'
+                    activity_start_zip       = '-'
+                    activity_start_country   = '-'
+                    activity_end_city        = '-'
+                    activity_end_state       = '-'
+                    activity_end_zip         = '-'
+                    activity_end_country     = '-'
                         
                 # Localize start and end times based on the start latitude/longitude
                 activity_start_time = localize_time(activity_start_time, activity_start_latitude, activity_start_longitude)
-                activity_end_time = localize_time(activity_end_time, activity_start_latitude, activity_start_longitude)
+                activity_end_time   = localize_time(activity_end_time, activity_start_latitude, activity_start_longitude)
 
                 activity_id = hash.sha256(f"{activity_type} {activity_sub_type} {activity_start_time}".encode('utf-8')).hexdigest()
 
