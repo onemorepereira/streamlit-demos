@@ -105,7 +105,41 @@ else:
 # Lookup IP details if a valid IP was extracted
 if ip_address:
     data = get_ip_details(ip_address)
-    st.write("Details for ", domain if domain else ip_address, data)
+    
+    # Massage displayed data a little bit
+    st.write("Details for ", domain if domain else ip_address)
+    
+    small_data = data.drop(
+        columns=[
+            'lat',
+            'lon',
+            'status',
+            'countryCode',
+            'region',
+            ]).rename(
+                columns={
+                    'query': 'IP Address',
+                    'country': 'Country',
+                    'regionName': 'Region',
+                    'city': 'City',
+                    'zip': 'ZIP',
+                    'timezone': "Time Zone",
+                    'isp': 'Service Provider',
+                    'org': 'Hosting Provider',
+                    'as': 'AS',
+                    })[[
+                        'IP Address',
+                        'Service Provider',
+                        'AS',
+                        'Hosting Provider',
+                        'Country',
+                        'Region',
+                        'City',
+                        'ZIP',
+                        'Time Zone',
+                        ]]
+                    
+    st.dataframe(small_data, use_container_width=True)
     
     try:
         background = alt.Chart(states).mark_geoshape(
