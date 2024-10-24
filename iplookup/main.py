@@ -108,7 +108,6 @@ if ip_address:
     
     # Massage displayed data a little bit
     st.write("Details for ", domain if domain else ip_address)
-    
     small_data = data.drop(
         columns=[
             'lat',
