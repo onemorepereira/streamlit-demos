@@ -2,6 +2,7 @@
 __pycache__
 backup
 samples
+.vscode
 *.persist
 
 journal.json

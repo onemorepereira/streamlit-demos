@@ -95,9 +95,5 @@ if os.path.exists(JOURNAL_FILE):
         
         st.write('### Primary Macro Sources by week')
         st.dataframe(wky_summary.set_index('week_start'))
-        
- 
-        
-
 else:
     st.write("No journal file found.")
