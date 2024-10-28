@@ -1,4 +1,7 @@
 import src.utils as h
+from datetime import datetime
+import pandas as pd
+import pytz
 
 class UserProfile:
     HR_FILE      = './userdata/hr_profile.json'
@@ -37,8 +40,23 @@ class UserProfile:
     def reload_api_key(self):
         self.api_key = h.get_opencage_key(self.profile_file)
     
-    # Method to get the user's FTP
-    def get_ftp(self):
+    # Method to get the user's FTP with optional date
+    def get_ftp(self, date: datetime = None):
+        if date:
+            # Filter the FTP value based on the provided date
+            filtered_df = h.load_data(self.profile_file)
+            filtered_df['timestamp'] = pd.to_datetime(filtered_df['timestamp'], errors='coerce')
+            filtered_ftp = filtered_df[filtered_df['timestamp'] <= date]
+            
+            if not filtered_ftp.empty and 'ftp' in filtered_ftp.columns:
+                ftp = filtered_ftp['ftp'].iloc[-1]  # Get the last ftp value on or after the date
+                if pd.notna(ftp):
+                    return int(ftp)
+                else:
+                    return 0
+            return 0  # Return 0 if no valid FTP found after the date
+        
+        # Return the latest FTP value if no date is provided
         return self.ftp
     
     # Method to get the max heart rate
@@ -49,16 +67,27 @@ class UserProfile:
     def get_resting_hr(self):
         return self.resting_hr
     
-    # Method to get HR zones
-    def get_hr_zones(self):
+    # Method to get HR zones with optional date
+    def get_hr_zones(self, date: datetime = None):
+        if date:
+            filtered_zones = self.hr_zones[pd.to_datetime(self.hr_zones['timestamp']) <= date]
+            if not filtered_zones.empty:
+                return filtered_zones.iloc[-1]
+            else:
+                return None
         return self.hr_zones.iloc[-1]
     
     def get_all_hr_zones(self):
         return self.hr_zones
     
-    
-    # Method to get power zones
-    def get_power_zones(self):
+    # Method to get power zones with optional date
+    def get_power_zones(self, date: datetime = None):
+        if date:
+            filtered_zones = self.power_zones[pd.to_datetime(self.power_zones['timestamp']) <= date]
+            if not filtered_zones.empty:
+                return filtered_zones.iloc[-1]
+            else:
+                return None
         return self.power_zones.iloc[-1]
     
     def get_all_power_zones(self):

@@ -72,11 +72,8 @@ def combine_json_to_csv(directory_path, output_csv_file):
     print(f"Data successfully saved to {output_csv_file}")
     
 profile = UserProfile()
-FTP                 = profile.get_ftp()
 BIO_HR_MAX          = profile.get_max_hr()
 BIO_HR_RESTING      = profile.get_resting_hr()
-LATEST_HR_ZONES     = profile.get_hr_zones()
-LATEST_POWER_ZONES  = profile.get_power_zones()
 API_KEY             = profile.get_api_key()
 
 EXT_FILTER  = 'fit'
@@ -95,13 +92,14 @@ for file in FILES:
                 fit_records_df = fitfile[0]
                 fit_events_df  = fitfile[1]
                 fit_session_df = fitfile[2]
-                summary_df     = h.get_summary(fit_records_df, ftp = FTP, format=EXT_FILTER)
                 
                 activity_type       = fit_session_df['sport'].iloc[-1]
                 activity_sub_type   = fit_session_df['sub_sport'].iloc[-1]
                 activity_start_time = fit_events_df['timestamp'].iloc[0] if fit_events_df['timestamp'].iloc[0] else None
                 activity_end_time   = fit_events_df['timestamp'].iloc[-1] if fit_events_df['timestamp'].iloc[0] else None
-                
+
+                ftp_                 = profile.get_ftp(activity_start_time.to_pydatetime().astimezone(pytz.UTC).replace(tzinfo=None))
+                summary_df           = h.get_summary(fit_records_df, ftp = ftp_, format=EXT_FILTER)
                 activity_distance    = summary_df['distance_total'].iloc[0]
                 speed_average        = summary_df['speed_avg'].iloc[0]
                 speed_moving_average = summary_df['speed_moving_avg'].iloc[0]
@@ -151,7 +149,8 @@ for file in FILES:
                         activity_end_state     = '-'
                         activity_end_zip       = '-'
                         activity_end_country   = '-'
-                else:
+
+                elif 'indoor_cycling' in activity_sub_type:
                     activity_start_latitude  = None
                     activity_start_longitude = None
                     activity_end_latitude    = None
@@ -192,9 +191,10 @@ for file in FILES:
                 hr_average  = summary_df['hr_avg'].iloc[0]
                 hr_max      = summary_df['hr_max'].iloc[0]
                 
-                intensity_factor    = summary_df['intensity_factor'].iloc[0]
+                intensity_factor = summary_df['intensity_factor'].iloc[0]
                 
-                hr_zone_time = h.calculate_hr_zone_time(fit_records_df, LATEST_HR_ZONES)
+                latest_hr_zones = profile.get_hr_zones(activity_start_time.to_pydatetime().astimezone(pytz.UTC).replace(tzinfo=None))
+                hr_zone_time    = h.calculate_hr_zone_time(fit_records_df, latest_hr_zones)
 
                 te = h.calculate_training_effect(hr_zone_time, intensity_factor)
                 
@@ -220,16 +220,16 @@ for file in FILES:
                 
                 bio_hr_resting    = BIO_HR_RESTING
                 bio_hr_max        = BIO_HR_MAX
-                bio_hr_zone_1_min = LATEST_HR_ZONES['zone.1.low_hr']
-                bio_hr_zone_1_max = LATEST_HR_ZONES['zone.1.max_hr']
-                bio_hr_zone_2_min = LATEST_HR_ZONES['zone.2.low_hr']
-                bio_hr_zone_2_max = LATEST_HR_ZONES['zone.2.max_hr']
-                bio_hr_zone_3_min = LATEST_HR_ZONES['zone.3.low_hr']
-                bio_hr_zone_3_max = LATEST_HR_ZONES['zone.3.max_hr']
-                bio_hr_zone_4_min = LATEST_HR_ZONES['zone.4.low_hr']
-                bio_hr_zone_4_max = LATEST_HR_ZONES['zone.4.max_hr']
-                bio_hr_zone_5_min = LATEST_HR_ZONES['zone.5.low_hr']
-                bio_hr_zone_5_max = LATEST_HR_ZONES['zone.5.max_hr']
+                bio_hr_zone_1_min = latest_hr_zones['zone.1.low_hr']
+                bio_hr_zone_1_max = latest_hr_zones['zone.1.max_hr']
+                bio_hr_zone_2_min = latest_hr_zones['zone.2.low_hr']
+                bio_hr_zone_2_max = latest_hr_zones['zone.2.max_hr']
+                bio_hr_zone_3_min = latest_hr_zones['zone.3.low_hr']
+                bio_hr_zone_3_max = latest_hr_zones['zone.3.max_hr']
+                bio_hr_zone_4_min = latest_hr_zones['zone.4.low_hr']
+                bio_hr_zone_4_max = latest_hr_zones['zone.4.max_hr']
+                bio_hr_zone_5_min = latest_hr_zones['zone.5.low_hr']
+                bio_hr_zone_5_max = latest_hr_zones['zone.5.max_hr']
                 
                 hr_time_in_zone_1 = hr_zone_time.loc[hr_zone_time['zone'] == 'zone1', 'time_in_seconds'].values[0]
                 hr_time_in_zone_2 = hr_zone_time.loc[hr_zone_time['zone'] == 'zone2', 'time_in_seconds'].values[0]
@@ -238,7 +238,8 @@ for file in FILES:
                 hr_time_in_zone_5 = hr_zone_time.loc[hr_zone_time['zone'] == 'zone5', 'time_in_seconds'].values[0]
 
                 
-                power_zone_time = h.calculate_power_zone_time(fit_records_df, LATEST_POWER_ZONES)
+                latest_power_zones  = profile.get_power_zones(activity_start_time.to_pydatetime().astimezone(pytz.UTC).replace(tzinfo=None))
+                power_zone_time     = h.calculate_power_zone_time(fit_records_df, latest_power_zones)
                 
                 # Just in case not all activities contain power data
                 try:
@@ -259,24 +260,28 @@ for file in FILES:
                     power_time_in_zone_7 = None
                     
 
-                bio_power_ftp        = FTP
-                bio_power_zone_1_min = LATEST_POWER_ZONES['zone.1.low_pwr']
-                bio_power_zone_1_max = LATEST_POWER_ZONES['zone.1.max_pwr']
-                bio_power_zone_2_min = LATEST_POWER_ZONES['zone.2.low_pwr']
-                bio_power_zone_2_max = LATEST_POWER_ZONES['zone.2.max_pwr']
-                bio_power_zone_3_min = LATEST_POWER_ZONES['zone.3.low_pwr']
-                bio_power_zone_3_max = LATEST_POWER_ZONES['zone.3.max_pwr']
-                bio_power_zone_4_min = LATEST_POWER_ZONES['zone.4.low_pwr']
-                bio_power_zone_4_max = LATEST_POWER_ZONES['zone.4.max_pwr']
-                bio_power_zone_5_min = LATEST_POWER_ZONES['zone.5.low_pwr']
-                bio_power_zone_5_max = LATEST_POWER_ZONES['zone.5.max_pwr']
-                bio_power_zone_6_min = LATEST_POWER_ZONES['zone.6.low_pwr']
-                bio_power_zone_6_max = LATEST_POWER_ZONES['zone.6.max_pwr']
-                bio_power_zone_7_min = LATEST_POWER_ZONES['zone.7.low_pwr']
-                bio_power_zone_7_max = LATEST_POWER_ZONES['zone.7.max_pwr']
+                bio_power_ftp        = ftp_
+                bio_power_zone_1_min = latest_power_zones['zone.1.low_pwr']
+                bio_power_zone_1_max = latest_power_zones['zone.1.max_pwr']
+                bio_power_zone_2_min = latest_power_zones['zone.2.low_pwr']
+                bio_power_zone_2_max = latest_power_zones['zone.2.max_pwr']
+                bio_power_zone_3_min = latest_power_zones['zone.3.low_pwr']
+                bio_power_zone_3_max = latest_power_zones['zone.3.max_pwr']
+                bio_power_zone_4_min = latest_power_zones['zone.4.low_pwr']
+                bio_power_zone_4_max = latest_power_zones['zone.4.max_pwr']
+                bio_power_zone_5_min = latest_power_zones['zone.5.low_pwr']
+                bio_power_zone_5_max = latest_power_zones['zone.5.max_pwr']
+                bio_power_zone_6_min = latest_power_zones['zone.6.low_pwr']
+                bio_power_zone_6_max = latest_power_zones['zone.6.max_pwr']
+                bio_power_zone_7_min = latest_power_zones['zone.7.low_pwr']
+                bio_power_zone_7_max = latest_power_zones['zone.7.max_pwr']
                 
 
             activity_data = dict()
+            
+            if activity_sub_type == 'indoor_cycling' and activity_start_city != '-':
+                logging.error(f"There seems to be a problem with {file}")
+                
             with open(f"{ROOT}/summary_{file}.json", 'w') as json_file:
                 activity_data[activity_id] = {
                     'activity_type':            activity_type,

@@ -192,7 +192,7 @@ def aggregate_gpx_data(df: pd.DataFrame) -> pd.DataFrame:
     return grouped.reset_index()
 
 @timing
-def create_chart(source_df1: str, source_df2: str, agg_df1: pd.DataFrame, agg_df2: pd.DataFrame, y_column: str, title: str, y_label: str):
+def create_dual_chart(source_df1: str, source_df2: str, agg_df1: pd.DataFrame, agg_df2: pd.DataFrame, y_column: str, title: str, y_label: str):
     # Add a source column for each DataFrame
     agg_df1['source'] = source_df1
     agg_df2['source'] = source_df2
@@ -224,6 +224,47 @@ def create_chart(source_df1: str, source_df2: str, agg_df1: pd.DataFrame, agg_df
         height=400
     ).interactive()
 
+@timing
+def create_chart(df: pd.DataFrame, y_column: str, title: str, y_label: str):
+    # Implement sensible smoothing of chart data
+    samples = round(len(df))
+    if samples < 1000:
+        smoothing = round(len(df) * 0.1)
+    elif samples >= 1000:
+        smoothing = round(len(df) * 0.01)
+    elif samples >= 10000:
+        smoothing = round(len(df) * 0.001)
+    elif samples >= 50000:
+        smoothing = round(len(df) * 0.001)
+    else:
+        smoothing = 0
+    
+    # Eyeballing a min/max value for "Y"
+    df[y_column] = df[y_column].rolling(smoothing).mean()
+    y_min = df[y_column].min() * 1
+    y_max = df[y_column].max() * 1
+
+    return alt.Chart(df).mark_line().encode(
+        x=alt.X(
+            'timestamp',
+            title=None,
+            axis=alt.Axis(labels=False,)
+        ),
+        y=alt.Y(
+            y_column,
+            title=None,
+            scale=alt.Scale(domain=(y_min, y_max)),
+            axis=alt.Axis(labels=False,),
+        ),
+        color=alt.value("#FF0000"),
+        strokeWidth=alt.value(0.75),
+        strokeOpacity=alt.value(1),
+    ).properties(
+        title=title,
+        # width=200,
+        height=100,
+    ).configure_axis(grid=False)
+    
 @timing
 def parse_fit_file(fit_file) -> pd.DataFrame:
     fitfile = fitparse.FitFile(fit_file)
@@ -461,7 +502,7 @@ def get_normalized_power(df: pd.DataFrame) -> float:
 @timing
 def get_intensity_factor(normalized_power: float, ftp: float) -> float:
     if ftp <= 0:
-        raise ValueError("FTP must be a positive number")
+        return 0
 
     intensity_factor = normalized_power / ftp
     return round(intensity_factor, 3)
@@ -469,7 +510,7 @@ def get_intensity_factor(normalized_power: float, ftp: float) -> float:
 @timing
 def get_tss(normalized_power: float, ftp: float, duration_seconds: float, intensity_factor: float) -> float:
     if ftp <= 0 or duration_seconds <= 0:
-        raise ValueError("FTP and duration must be positive numbers")
+        return 0
     
     tss = (duration_seconds * normalized_power * intensity_factor) / (ftp * 3600) * 100
     return round(tss, 1)
@@ -669,7 +710,7 @@ def aggregate_by_time(df: pd.DataFrame, timestamp_col: str, interval: str = '5mi
     return aggregated_df
 
 
-@timing# Profile Helpers
+@timing
 def load_data(data_file) -> pd.DataFrame:
     if os.path.exists(data_file):
         with open(data_file, "r") as file:
@@ -678,16 +719,32 @@ def load_data(data_file) -> pd.DataFrame:
     else:
         return pd.DataFrame()
 
-@timing
 def save_data(data, data_file):
     with open(data_file, "w") as file:
         json.dump(data, file, indent=4)
 
-@timing        
-def get_latest_ftp(data_file):
+@timing
+def get_latest_ftp(data_file, date: datetime = None):
     df = load_data(data_file)
-    if not df.empty and "ftp" in df.columns:
-        ftp = df["ftp"].iloc[-1]
+    if 'timestamp' in df.columns:
+        df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
+
+    if date is None:
+        if not df.empty and 'ftp' in df.columns:
+            ftp = df['ftp'].iloc[-1]
+            if pd.notna(ftp):
+                return int(ftp)
+            else:
+                return 0
+        else:
+            return 0
+
+    # Filter the DataFrame for entries on or after the specified date
+    filtered_df = df[df['timestamp'] >= pd.to_datetime(date)]
+    logging.info(filtered_df)
+    
+    if not filtered_df.empty and 'ftp' in filtered_df.columns:
+        ftp = filtered_df['ftp'].iloc[-1]
         if pd.notna(ftp):
             return int(ftp)
         else:
