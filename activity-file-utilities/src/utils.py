@@ -740,7 +740,7 @@ def get_latest_ftp(data_file, date: datetime = None):
             return 0
 
     # Filter the DataFrame for entries on or after the specified date
-    filtered_df = df[df['timestamp'] >= pd.to_datetime(date)]
+    filtered_df = df[df['timestamp'] <= pd.to_datetime(date)]
     logging.info(filtered_df)
     
     if not filtered_df.empty and 'ftp' in filtered_df.columns:
