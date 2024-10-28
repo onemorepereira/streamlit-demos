@@ -1,7 +1,6 @@
 import src.utils as h
 from datetime import datetime
 import pandas as pd
-import pytz
 
 class UserProfile:
     HR_FILE      = './userdata/hr_profile.json'
@@ -46,17 +45,15 @@ class UserProfile:
             # Filter the FTP value based on the provided date
             filtered_df = h.load_data(self.profile_file)
             filtered_df['timestamp'] = pd.to_datetime(filtered_df['timestamp'], errors='coerce')
-            filtered_ftp = filtered_df[filtered_df['timestamp'] <= date]
             
+            filtered_ftp = filtered_df[filtered_df['timestamp'] <= date]
             if not filtered_ftp.empty and 'ftp' in filtered_ftp.columns:
-                ftp = filtered_ftp['ftp'].iloc[-1]  # Get the last ftp value on or after the date
+                ftp = filtered_ftp['ftp'].iloc[-1]
                 if pd.notna(ftp):
                     return int(ftp)
                 else:
                     return 0
-            return 0  # Return 0 if no valid FTP found after the date
-        
-        # Return the latest FTP value if no date is provided
+            return 0
         return self.ftp
     
     # Method to get the max heart rate
